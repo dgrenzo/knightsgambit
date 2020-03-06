@@ -11,7 +11,8 @@
     "serve": "gulp serve",
     "test": "gulp test",
     "watch": "gulp watch",
-    "watchRefresh": "gulp watchRefresh"
+    "watchRefresh": "gulp watchRefresh",
+    "deploy": "cd dist && git add --all && git commit -m \"Release at $(date)\" && git push"
   },
   "author": "davdd",
   "license": "",
