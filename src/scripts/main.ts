@@ -1,8 +1,7 @@
-import PIXI = require("pixi.js");
+import * as PIXI from "pixi.js"
 import {Howl} from 'howler';
 
 let pixi_app : PIXI.Application = new PIXI.Application({
-  autoResize: true,
   backgroundColor : 0x000011,
   view : <HTMLCanvasElement>document.getElementById('game_canvas')
 });
@@ -12,3 +11,7 @@ let WindowResize = () => {
 }
 window.addEventListener('resize', WindowResize);
 Promise.resolve().then(WindowResize);
+
+
+let king = PIXI.Sprite.from('images/white_king.png');
+pixi_app.stage.addChild(king);
