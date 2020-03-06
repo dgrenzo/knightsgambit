@@ -3,4 +3,5 @@
 yarn.lock
 .vscode/
 debug/
+dist/
 node_modules/
