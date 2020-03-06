@@ -20,10 +20,17 @@ const through = require("through2");
 const fs = require("fs");
 const merge = require("merge2");
 
-const debug = settings.debug === true;
+const debug = false;
 
 if (debug) { console.log("=== DEBUG Environment ===") }
 else { console.log("=== RELEASE Environment ==="); }
+
+function browserReloadPromise() {
+  return new Promise(function(resolve, reject) {
+    browserSync.reload();
+    resolve();
+  });
+}
 
 // Clean destination directory
 gulp.task("clean", () => {
@@ -72,7 +79,7 @@ gulp.task("compile", () => {
 });
 
 // Bundle JavaScript files into a single file
-gulp.task("bundle", ["compile"], () => {
+gulp.task("bundle", gulp.series("compile", () => {
     const bundleFilename = settings.bundle;
     const mainFilename = settings.main;
     let dest = "";
@@ -80,7 +87,7 @@ gulp.task("bundle", ["compile"], () => {
     if (debug) { dest = settings.paths.debug;  }
     else { dest = settings.paths.release; }
 
-    return browserifyInc({
+    return browserify({
             "entries": dest + mainFilename,
             "debug": false,
             "cache": "./.cache.json"
@@ -109,7 +116,7 @@ gulp.task("bundle", ["compile"], () => {
                 del([dest + "*.js", "!" + dest + bundleFilename]);
             }
         });
-});
+}));
 
 // Copy all static assets
 gulp.task("copy", () => {
@@ -130,17 +137,16 @@ gulp.task("copy", () => {
         .pipe(changed(dest))
         .pipe(gulp.dest(dest + settings.paths.tgtImages));
 
-    gulp.src(settings.paths.srcCss + "**")
+    return gulp.src(settings.paths.srcCss + "**")
         .pipe(changed(dest))
         .pipe(gulp.dest(dest + settings.paths.tgtCss));
 });
 
 // Rebuild on change
 gulp.task("watch", () => {
-    runSequence(["bundle", "copy"], "serve");
-    gulp.watch(settings.paths.src + "**", () => {
-        runSequence(["bundle", "copy"], browserSync.reload);
-    });
+  gulp.series("bundle", "copy", "serve")();
+    //runSequence(["bundle", "copy"], "serve");
+    gulp.watch(settings.paths.src + "**", gulp.series("bundle", "copy", browserReloadPromise));
 });
 
 // Launch the HTTP server
@@ -160,9 +166,9 @@ gulp.task("serve", () => {
 gulp.task("watchRefresh", () => {
     runSequence(["bundle", "copy"], ["serve", "test"]);
     gulp.watch(settings.paths.src + "**", () => {
-        runSequence(["bundle", "copy"], "test", browserSync.reload);
+        runSequence(["bundle", "copy"], "test", browserReloadPromise);
     });
 });
 
 // Default task
-gulp.task("default", ["bundle", "copy"]);
+gulp.task("default", gulp.series("bundle", "copy"));

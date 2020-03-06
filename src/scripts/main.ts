@@ -26,5 +26,5 @@ function getPieceSprite(faction : FACTION, piece : PIECE) : PIXI.Sprite {
   return PIXI.Sprite.from(toAssetString(faction, piece));
 }
 
-let piece = getPieceSprite(FACTION.WHITE, PIECE.BISHOP);
+let piece = getPieceSprite(FACTION.WHITE, PIECE.KING);
 board.addChild(piece);
