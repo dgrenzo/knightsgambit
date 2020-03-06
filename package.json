@@ -12,7 +12,7 @@
     "test": "gulp test",
     "watch": "gulp watch",
     "watchRefresh": "gulp watchRefresh",
-    "deploy": "cd dist && git add --all && git commit -m \"gh-pages build\" && git push"
+    "deploy": "gulp rebuild && cd dist && git add --all && git commit -m \"gh-pages build\" && git push"
   },
   "author": "davdd",
   "license": "",
