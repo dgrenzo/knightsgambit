@@ -10,7 +10,6 @@ const source = require("vinyl-source-stream");
 const buffer = require("vinyl-buffer");
 const uglify = require("gulp-uglify-es").default;
 const sourcemaps = require("gulp-sourcemaps");
-const gutil = require("gulp-util");
 const gulpif = require("gulp-if");
 const changed = require("gulp-changed");
 const browserSync = require("browser-sync");
@@ -75,7 +74,7 @@ gulp.task("compile", () => {
             .pipe(gulp.dest(dest)),
         tsResult.dts
             .pipe(gulp.dest(dest))])
-        .on("error", gutil.log);
+        //.on("error", gutil.log);
 });
 
 // Bundle JavaScript files into a single file
@@ -110,7 +109,7 @@ gulp.task("bundle", gulp.series("compile", () => {
         }))
         //.pipe(gulpif(debug, sourcemaps.write()))
         .pipe(gulp.dest(dest))
-        .on("error", gutil.log)
+        //.on("error", gutil.log)
         .on("finish", () => {
             if (!debug) {
                 del([dest + "*.js", "!" + dest + bundleFilename]);
