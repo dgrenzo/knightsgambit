@@ -18,6 +18,10 @@ function pieceToString(piece : PIECE) : string {
   }
 }
 
+export function getTileString(faction : FACTION) {
+  return 'images/' + factionToString(faction) + '_tile.png';
+}
+
 export function toAssetString(faction : FACTION, piece : PIECE) {
   return 'images/' + factionToString(faction) + '_' + pieceToString(piece) + '.png';
 }

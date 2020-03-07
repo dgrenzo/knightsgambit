@@ -2,6 +2,7 @@ import * as PIXI from "pixi.js";
 import {FACTION, PIECE} from './types'
 import {toAssetString} from "./assets";
 import {Howl} from 'howler';
+import { Board } from "./game/board";
 
 
 PIXI.settings.SCALE_MODE = PIXI.SCALE_MODES.NEAREST;
@@ -17,14 +18,18 @@ window.addEventListener('resize', WindowResize);
 Promise.resolve().then(WindowResize);
 
 
-let board = new PIXI.Container();
-pixi_app.stage.addChild(board);
-board.scale.set(4);
 
 
 function getPieceSprite(faction : FACTION, piece : PIECE) : PIXI.Sprite {
   return PIXI.Sprite.from(toAssetString(faction, piece));
 }
 
-let piece = getPieceSprite(FACTION.WHITE, PIECE.KING);
-board.addChild(piece);
+let board = new Board();
+board.m_container.position.set(300, 100);
+pixi_app.stage.addChild(board.m_container);
+
+let piece = getPieceSprite(FACTION.WHITE, PIECE.QUEEN);
+piece.position.set(27, 18)
+// board.m_container.addChild(piece);
+
+pixi_app.ticker.add(board.wiggle);
