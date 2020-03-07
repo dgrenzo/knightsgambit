@@ -1,6 +1,6 @@
 import {FACTION, PIECE} from './types'
 
-function factionToString(faction : FACTION) : string {
+export function factionToString(faction : FACTION) : string {
   switch (faction) {
     case FACTION.BLACK : return 'black';
     case FACTION.WHITE : return 'white';
@@ -16,10 +16,6 @@ function pieceToString(piece : PIECE) : string {
     case PIECE.QUEEN : return 'queen';
     case PIECE.KING : return 'king';
   }
-}
-
-export function getTileString(faction : FACTION) {
-  return 'images/' + factionToString(faction) + '_tile.png';
 }
 
 export function toAssetString(faction : FACTION, piece : PIECE) {
