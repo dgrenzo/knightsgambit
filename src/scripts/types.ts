@@ -5,8 +5,8 @@ export enum FACTION {
 
 export enum PIECE {
   PAWN = 0,
-  KNIGHT,
   ROOK,
+  KNIGHT,
   BISHOP,
   QUEEN,
   KING,

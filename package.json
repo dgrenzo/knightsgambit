@@ -52,15 +52,11 @@
     "paths": {
       "src": "./src/",
       "srcScripts": "./src/scripts/",
-      "srcAudio": "./src/audio/",
-      "srcImages": "./src/images/",
-      "srcCss": "./src/css/",
+      "srcAssets": "./src/assets/",
       "release": "./dist/",
       "debug": "./debug/",
       "tgtScripts": "./",
-      "tgtImages": "images/",
-      "tgtAudio": "audio/",
-      "tgtCss": "css/",
+      "tgtAssets": "assets/",
       "tests": "./tests/"
     },
     "main": "main.js",

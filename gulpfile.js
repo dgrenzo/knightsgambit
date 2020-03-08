@@ -128,17 +128,9 @@ gulp.task("copy", () => {
         .pipe(changed(dest))
         .pipe(gulp.dest(dest));
 
-    gulp.src(settings.paths.srcAudio + "**")
+    return gulp.src(settings.paths.srcAssets + "**")
         .pipe(changed(dest))
-        .pipe(gulp.dest(dest + settings.paths.tgtAudio));
-        
-    gulp.src(settings.paths.srcImages + "**")
-        .pipe(changed(dest))
-        .pipe(gulp.dest(dest + settings.paths.tgtImages));
-
-    return gulp.src(settings.paths.srcCss + "**")
-        .pipe(changed(dest))
-        .pipe(gulp.dest(dest + settings.paths.tgtCss));
+        .pipe(gulp.dest(dest + settings.paths.tgtAssets));
 });
 
 // Rebuild on change

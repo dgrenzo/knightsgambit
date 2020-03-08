@@ -1,7 +1,8 @@
 import * as PIXI from "pixi.js";
 import { GameController } from "./game/GameController";
+import { RenderMode } from "./render/render";
 
-export const DEBUG = true;
+export const DEBUG = false;
 
 PIXI.settings.SCALE_MODE = PIXI.SCALE_MODES.NEAREST;
 let pixi_app : PIXI.Application = new PIXI.Application({
@@ -16,4 +17,5 @@ let WindowResize = () => {
 window.addEventListener('resize', WindowResize);
 Promise.resolve().then(WindowResize);
 
-let game = new GameController(pixi_app);
+
+let game = new GameController({pixi_app : pixi_app, mode : RenderMode.ISOMETRIC});

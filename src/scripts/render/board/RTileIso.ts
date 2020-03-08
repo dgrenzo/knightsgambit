@@ -7,7 +7,7 @@ import { RTile } from "./RTile";
 import {DEBUG} from '../../main';
 
 function getTileString(x : number, y : number) {
-  return 'images/isometric/' + factionToString(getTileColor(x,y)) + '_tile.png';
+  return 'assets/images/isometric/' + factionToString(getTileColor(x,y)) + '_tile.png';
 }
 
 export class RTileIso extends RTile {
