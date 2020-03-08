@@ -19,7 +19,7 @@ var ChessBoard_1 = require("../../game/board/ChessBoard");
 var RTile_1 = require("./RTile");
 var main_1 = require("../../main");
 function getTileString(x, y) {
-    return 'images/isometric/' + assets_1.factionToString(ChessBoard_1.getTileColor(x, y)) + '_tile.png';
+    return 'assets/images/isometric/' + assets_1.factionToString(ChessBoard_1.getTileColor(x, y)) + '_tile.png';
 }
 var RTileIso = (function (_super) {
     __extends(RTileIso, _super);

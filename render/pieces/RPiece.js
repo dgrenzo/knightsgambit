@@ -18,9 +18,10 @@ var assets_1 = require("../../assets");
 var RElement_1 = require("../RElement");
 var RPiece = (function (_super) {
     __extends(RPiece, _super);
-    function RPiece(x, y, info) {
-        var _this = _super.call(this, x, y) || this;
+    function RPiece(info) {
+        var _this = _super.call(this, info.pos[0], info.pos[1]) || this;
         _this.m_sprite = PIXI.Sprite.from(assets_1.toAssetString(info.faction, info.type));
+        _this.m_sprite.scale.set(0.75);
         _this.m_sprite.anchor.set(0.5, 1);
         return _this;
     }

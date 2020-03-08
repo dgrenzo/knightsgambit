@@ -17,11 +17,9 @@ var RPiece_1 = require("../../render/pieces/RPiece");
 var GameElement_1 = require("../GameElement");
 var ChessPiece = (function (_super) {
     __extends(ChessPiece, _super);
-    function ChessPiece(x, y, info) {
+    function ChessPiece(info) {
         var _this = _super.call(this) || this;
-        _this.x = x;
-        _this.y = y;
-        _this._render = new RPiece_1.RPiece(x, y, info);
+        _this._render = new RPiece_1.RPiece(info);
         return _this;
     }
     Object.defineProperty(ChessPiece.prototype, "render", {
