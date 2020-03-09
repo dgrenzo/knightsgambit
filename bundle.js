@@ -20,7 +20,7 @@ function pieceToString(piece) {
     }
 }
 function toAssetString(faction, piece) {
-    return 'assets/images/' + factionToString(faction) + '_' + pieceToString(piece) + '.png';
+    return 'assets/images/isometric/' + factionToString(faction) + '_' + pieceToString(piece) + '.png';
 }
 exports.toAssetString = toAssetString;
 
@@ -170,12 +170,13 @@ var ChessBoard = (function () {
     ChessBoard.prototype.init = function (board_config) {
         var _this = this;
         this.m_tiles = new Array();
-        board_config.tiles.forEach(function (pos) {
-            _this.addTile(pos[0], pos[1]);
-        });
         board_config.entities.forEach(function (p_cfg) {
             _this.addElement(new ChessPiece_1.ChessPiece(p_cfg));
         });
+        board_config.tiles.forEach(function (pos) {
+            _this.addTile(pos[0], pos[1]);
+        });
+        this.r_Board.sortElements();
     };
     ChessBoard.prototype.addTile = function (x, y) {
         var tile = new Tile_1.Tile(x, y, this.config);
@@ -289,13 +290,23 @@ var game = new GameController_1.GameController({ pixi_app: pixi_app, mode: rende
 Object.defineProperty(exports, "__esModule", { value: true });
 var RElement = (function () {
     function RElement(x, y) {
-        var _this = this;
         this.x = x;
         this.y = y;
-        this.addToContainer = function (container) {
-            container.addChild(_this.m_sprite);
-        };
     }
+    Object.defineProperty(RElement.prototype, "sprite", {
+        get: function () {
+            return this.m_sprite;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(RElement.prototype, "offset", {
+        get: function () {
+            return 0;
+        },
+        enumerable: true,
+        configurable: true
+    });
     RElement.prototype.setPosition = function (x, y) {
         this.m_sprite.position.set(x, y);
     };
@@ -310,9 +321,15 @@ var PIXI = require("pixi.js");
 var RBoard = (function () {
     function RBoard(m_app) {
         this.m_app = m_app;
+        this.m_elements = [];
         this.m_container = new PIXI.Container;
         m_app.stage.addChild(this.m_container);
     }
+    RBoard.prototype.addElement = function (element) {
+        this.m_elements.push(element);
+        this.m_container.addChild(element.sprite);
+    };
+    ;
     return RBoard;
 }());
 exports.RBoard = RBoard;
@@ -334,8 +351,8 @@ var __extends = (this && this.__extends) || (function () {
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
 var RBoard_1 = require("./RBoard");
-var TILE_WIDTH = 18;
-var TILE_HEIGHT = 11;
+var TILE_WIDTH = 64;
+var TILE_HEIGHT = 32;
 var RBoardIso = (function (_super) {
     __extends(RBoardIso, _super);
     function RBoardIso(m_app) {
@@ -345,17 +362,29 @@ var RBoardIso = (function (_super) {
         _this.TILE_HEIGHT = TILE_HEIGHT;
         _this.HALF_TILE_WIDTH = TILE_WIDTH / 2;
         _this.HALF_TILE_HEIGHT = TILE_HEIGHT / 2;
-        _this.addElement = function (element) {
-            element.addToContainer(_this.m_container);
-            _this.positionElement(element);
-        };
         _this.positionElement = function (element) {
             element.setPosition((element.x - element.y) * _this.HALF_TILE_WIDTH, (element.x + element.y) * _this.HALF_TILE_HEIGHT);
         };
+        _this.sortElements = function () {
+            _this.m_elements
+                .sort(function (a, b) {
+                return _this.getElementDepth(a) - _this.getElementDepth(b);
+            })
+                .forEach(function (e) {
+                _this.m_container.addChild(e.sprite);
+            });
+        };
+        _this.getElementDepth = function (element) {
+            return (element.x + element.y) + element.offset;
+        };
         _this.m_container.position.set(300, 100);
-        _this.m_container.scale.set(4);
+        _this.m_container.scale.set(1);
         return _this;
     }
+    RBoardIso.prototype.addElement = function (element) {
+        _super.prototype.addElement.call(this, element);
+        this.positionElement(element);
+    };
     return RBoardIso;
 }(RBoard_1.RBoard));
 exports.RBoardIso = RBoardIso;
@@ -385,6 +414,13 @@ var RTile = (function (_super) {
         _this.y = y;
         return _this;
     }
+    Object.defineProperty(RTile.prototype, "offset", {
+        get: function () {
+            return -4 / 16;
+        },
+        enumerable: true,
+        configurable: true
+    });
     return RTile;
 }(RElement_1.RElement));
 exports.RTile = RTile;
@@ -419,8 +455,10 @@ var RTileIso = (function (_super) {
         var _this = _super.call(this, x, y) || this;
         _this.x = x;
         _this.y = y;
-        _this.m_sprite = PIXI.Sprite.from(getTileString(x, y));
-        _this.m_sprite.anchor.set(0.5, 0.4);
+        _this.m_sprite = new PIXI.Sprite();
+        var tile = PIXI.Sprite.from(getTileString(x, y));
+        tile.position.set(-32, -18);
+        _this.m_sprite.addChild(tile);
         if (main_1.DEBUG) {
             var label = new PIXI.Text(x + ',' + y, {
                 fill: 0xFF0000,
@@ -459,9 +497,10 @@ var RPiece = (function (_super) {
     __extends(RPiece, _super);
     function RPiece(info) {
         var _this = _super.call(this, info.pos[0], info.pos[1]) || this;
-        _this.m_sprite = PIXI.Sprite.from(assets_1.toAssetString(info.faction, info.type));
-        _this.m_sprite.scale.set(0.75);
-        _this.m_sprite.anchor.set(0.5, 1);
+        _this.m_sprite = new PIXI.Sprite();
+        var piece = PIXI.Sprite.from(assets_1.toAssetString(info.faction, info.type));
+        piece.position.set(-16, -90);
+        _this.m_sprite.addChild(piece);
         return _this;
     }
     return RPiece;

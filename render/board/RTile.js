@@ -22,6 +22,13 @@ var RTile = (function (_super) {
         _this.y = y;
         return _this;
     }
+    Object.defineProperty(RTile.prototype, "offset", {
+        get: function () {
+            return -4 / 16;
+        },
+        enumerable: true,
+        configurable: true
+    });
     return RTile;
 }(RElement_1.RElement));
 exports.RTile = RTile;

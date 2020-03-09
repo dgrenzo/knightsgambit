@@ -18,12 +18,13 @@ var ChessBoard = (function () {
     ChessBoard.prototype.init = function (board_config) {
         var _this = this;
         this.m_tiles = new Array();
-        board_config.tiles.forEach(function (pos) {
-            _this.addTile(pos[0], pos[1]);
-        });
         board_config.entities.forEach(function (p_cfg) {
             _this.addElement(new ChessPiece_1.ChessPiece(p_cfg));
         });
+        board_config.tiles.forEach(function (pos) {
+            _this.addTile(pos[0], pos[1]);
+        });
+        this.r_Board.sortElements();
     };
     ChessBoard.prototype.addTile = function (x, y) {
         var tile = new Tile_1.Tile(x, y, this.config);

@@ -27,8 +27,10 @@ var RTileIso = (function (_super) {
         var _this = _super.call(this, x, y) || this;
         _this.x = x;
         _this.y = y;
-        _this.m_sprite = PIXI.Sprite.from(getTileString(x, y));
-        _this.m_sprite.anchor.set(0.5, 0.4);
+        _this.m_sprite = new PIXI.Sprite();
+        var tile = PIXI.Sprite.from(getTileString(x, y));
+        tile.position.set(-32, -18);
+        _this.m_sprite.addChild(tile);
         if (main_1.DEBUG) {
             var label = new PIXI.Text(x + ',' + y, {
                 fill: 0xFF0000,

@@ -20,9 +20,10 @@ var RPiece = (function (_super) {
     __extends(RPiece, _super);
     function RPiece(info) {
         var _this = _super.call(this, info.pos[0], info.pos[1]) || this;
-        _this.m_sprite = PIXI.Sprite.from(assets_1.toAssetString(info.faction, info.type));
-        _this.m_sprite.scale.set(0.75);
-        _this.m_sprite.anchor.set(0.5, 1);
+        _this.m_sprite = new PIXI.Sprite();
+        var piece = PIXI.Sprite.from(assets_1.toAssetString(info.faction, info.type));
+        piece.position.set(-16, -90);
+        _this.m_sprite.addChild(piece);
         return _this;
     }
     return RPiece;
