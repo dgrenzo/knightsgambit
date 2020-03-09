@@ -15,8 +15,11 @@ export class RTileIso extends RTile {
   constructor(public readonly x : number, public readonly y : number) {
     super(x, y);
 
-    this.m_sprite = PIXI.Sprite.from(getTileString(x, y));
-    this.m_sprite.anchor.set(0.5, 0.4);
+    this.m_sprite = new PIXI.Sprite();
+
+    let tile = PIXI.Sprite.from(getTileString(x, y));
+    tile.position.set(-32, -18)
+    this.m_sprite.addChild(tile);
 
 
     if (DEBUG)

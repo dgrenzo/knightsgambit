@@ -1,11 +1,9 @@
 import * as PIXI from 'pixi.js'
 import { RBoard } from "./RBoard";
-import { RTileIso } from "./RTileIso";
 import { RElement } from '../RElement';
 
-const TILE_WIDTH : number = 18;
-const TILE_HEIGHT : number = 11;
-
+const TILE_WIDTH : number = 64;
+const TILE_HEIGHT : number = 32;
 
 export class RBoardIso extends RBoard {
   public readonly TILE_WIDTH = TILE_WIDTH;
@@ -17,11 +15,11 @@ export class RBoardIso extends RBoard {
   constructor (protected m_app : PIXI.Application) {
     super(m_app);
     this.m_container.position.set(300, 100);
-    this.m_container.scale.set(4);
+    this.m_container.scale.set(1);
   }
 
-  public addElement = (element : RElement) => {
-    element.addToContainer(this.m_container);
+  public addElement(element : RElement) {
+    super.addElement(element);
     this.positionElement(element);
   }
 
@@ -30,5 +28,19 @@ export class RBoardIso extends RBoard {
       (element.x - element.y) * this.HALF_TILE_WIDTH,
       (element.x + element.y) * this.HALF_TILE_HEIGHT
     );
+  }
+
+  public sortElements = () => {
+    this.m_elements
+      .sort( (a, b) => {
+        return this.getElementDepth(a) - this.getElementDepth(b) 
+      })
+      .forEach( (e) => {
+        this.m_container.addChild(e.sprite)
+      });
+  }
+
+  public getElementDepth = (element : RElement) : number => {
+    return (element.x + element.y) + element.offset;
   }
 }

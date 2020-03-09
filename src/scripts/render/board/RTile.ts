@@ -7,4 +7,8 @@ export abstract class RTile extends RElement  {
     super(x, y);
   }
 
+  public get offset() : number {
+    return -4/16;
+  }
+
 }

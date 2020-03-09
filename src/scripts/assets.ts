@@ -19,5 +19,5 @@ function pieceToString(piece : PIECE) : string {
 }
 
 export function toAssetString(faction : FACTION, piece : PIECE) {
-  return 'assets/images/' + factionToString(faction) + '_' + pieceToString(piece) + '.png';
+  return 'assets/images/isometric/' + factionToString(faction) + '_' + pieceToString(piece) + '.png';
 }

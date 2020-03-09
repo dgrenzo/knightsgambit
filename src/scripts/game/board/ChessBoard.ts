@@ -35,13 +35,15 @@ export class ChessBoard {
 
     this.m_tiles = new Array<Tile>();
 
+
+    board_config.entities.forEach( (p_cfg : PieceInfo)=> {
+      this.addElement(new ChessPiece(p_cfg))
+    });
     board_config.tiles.forEach( (pos) => {
       this.addTile(pos[0], pos[1]);
     });
 
-    board_config.entities.forEach( (p_cfg : PieceInfo)=> {
-      this.addElement(new ChessPiece(p_cfg))
-    })
+    this.r_Board.sortElements();
   }
 
   private addTile(x : number, y : number) : Tile {
