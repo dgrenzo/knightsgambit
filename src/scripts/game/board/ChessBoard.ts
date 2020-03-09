@@ -1,11 +1,8 @@
 import {FACTION, PIECE} from '../../types'
 import { Tile } from './Tile';
-import { CreateBoard } from '../../render/render'
-import { RBoard } from '../../render/board/RBoard';
 import { GameConfig } from '../GameController';
 import { ChessPiece, PieceInfo } from '../pieces/ChessPiece';
-import { RElement } from '../../render/RElement';
-import { GameElement } from '../GameElement';
+import { Scene } from '../../engine/scene/Scene';
 
 const COLOR = {
   BLACK : 0x393939,
@@ -17,43 +14,28 @@ export interface IBoardConfig {
   entities : Array<any>,
 }
 
-export class ChessBoard {
+export class ChessBoard extends Scene {
 
   private m_tiles : Tile[];
 
-  private r_Board : RBoard;
-
   constructor(private config : GameConfig) {
-    this.r_Board = CreateBoard(config);
-  }
-
-  public addElement(gameElement : GameElement) {
-    this.r_Board.addElement(gameElement.render);
+    super();
   }
 
   public init (board_config : IBoardConfig) {
-
+    this.m_elements = [];
     this.m_tiles = new Array<Tile>();
-
 
     board_config.entities.forEach( (p_cfg : PieceInfo)=> {
       this.addElement(new ChessPiece(p_cfg))
     });
     board_config.tiles.forEach( (pos) => {
-      this.addTile(pos[0], pos[1]);
+      
+      this.addElement(new Tile(pos[0], pos[1]));
     });
-
-    this.r_Board.sortElements();
-  }
-
-  private addTile(x : number, y : number) : Tile {
-    let tile = new Tile(x, y, this.config);
-    this.m_tiles.push(tile);
-    this.addElement(tile);
-    return tile;
   }
 }
 
-export function getTileColor(x : number, y : number) : FACTION {
+export function GetTileColor(x : number, y : number) : FACTION {
   return (x + y) % 2;
 }

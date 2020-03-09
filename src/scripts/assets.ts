@@ -1,5 +1,11 @@
 import {FACTION, PIECE} from './types'
 
+export interface AssetInfo {
+  name : string,
+  offset_x ?: number, 
+  offset_y ?: number,
+}
+
 export function factionToString(faction : FACTION) : string {
   switch (faction) {
     case FACTION.BLACK : return 'black';
@@ -7,17 +13,6 @@ export function factionToString(faction : FACTION) : string {
   }
 }
 
-function pieceToString(piece : PIECE) : string {
-  switch (piece) {
-    case PIECE.PAWN : return 'pawn';
-    case PIECE.KNIGHT : return 'knight';
-    case PIECE.ROOK : return 'rook';
-    case PIECE.BISHOP : return 'bishop';
-    case PIECE.QUEEN : return 'queen';
-    case PIECE.KING : return 'king';
-  }
-}
-
-export function toAssetString(faction : FACTION, piece : PIECE) {
-  return 'assets/images/isometric/' + factionToString(faction) + '_' + pieceToString(piece) + '.png';
+export function getAssetURL(asset) {
+  return 'assets/images/isometric/' + asset;
 }
