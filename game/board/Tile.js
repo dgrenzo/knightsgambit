@@ -13,24 +13,23 @@ var __extends = (this && this.__extends) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
-var render_1 = require("../../render/render");
-var GameElement_1 = require("../GameElement");
+var Entity_1 = require("../../engine/scene/Entity");
+var ChessBoard_1 = require("./ChessBoard");
+var assets_1 = require("../../assets");
 var Tile = (function (_super) {
     __extends(Tile, _super);
-    function Tile(x, y, config) {
-        var _this = _super.call(this) || this;
-        _this.x = x;
-        _this.y = y;
-        _this._render = render_1.CreateTile(x, y, config);
+    function Tile(x, y) {
+        var _this = _super.call(this, x, y) || this;
+        _this.depth_offset = -1;
+        _this.getAssetInfo = function () {
+            return {
+                name: assets_1.factionToString(ChessBoard_1.GetTileColor(_this.x, _this.y)) + '_tile.png',
+                offset_x: -32,
+                offset_y: -18,
+            };
+        };
         return _this;
     }
-    Object.defineProperty(Tile.prototype, "render", {
-        get: function () {
-            return this._render;
-        },
-        enumerable: true,
-        configurable: true
-    });
     return Tile;
-}(GameElement_1.GameElement));
+}(Entity_1.Entity));
 exports.Tile = Tile;

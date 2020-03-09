@@ -13,22 +13,33 @@ var __extends = (this && this.__extends) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
-var RPiece_1 = require("../../render/pieces/RPiece");
-var GameElement_1 = require("../GameElement");
+var types_1 = require("../../types");
+var Entity_1 = require("../../engine/scene/Entity");
+var assets_1 = require("../../assets");
 var ChessPiece = (function (_super) {
     __extends(ChessPiece, _super);
     function ChessPiece(info) {
-        var _this = _super.call(this) || this;
-        _this._render = new RPiece_1.RPiece(info);
+        var _this = _super.call(this, info.pos[0], info.pos[1]) || this;
+        _this.info = info;
+        _this.getAssetInfo = function () {
+            return {
+                name: assets_1.factionToString(_this.info.faction) + '_' + pieceToString(_this.info.type) + '.png',
+                offset_x: -16,
+                offset_y: -90,
+            };
+        };
         return _this;
     }
-    Object.defineProperty(ChessPiece.prototype, "render", {
-        get: function () {
-            return this._render;
-        },
-        enumerable: true,
-        configurable: true
-    });
     return ChessPiece;
-}(GameElement_1.GameElement));
+}(Entity_1.Entity));
 exports.ChessPiece = ChessPiece;
+function pieceToString(piece) {
+    switch (piece) {
+        case types_1.PIECE.PAWN: return 'pawn';
+        case types_1.PIECE.KNIGHT: return 'knight';
+        case types_1.PIECE.ROOK: return 'rook';
+        case types_1.PIECE.BISHOP: return 'bishop';
+        case types_1.PIECE.QUEEN: return 'queen';
+        case types_1.PIECE.KING: return 'king';
+    }
+}

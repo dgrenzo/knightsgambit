@@ -3,6 +3,9 @@ Object.defineProperty(exports, "__esModule", { value: true });
 var FSMState = (function () {
     function FSMState() {
     }
+    FSMState.prototype.setFSM = function (fsm) {
+        this.m_fsm = fsm;
+    };
     return FSMState;
 }());
 exports.FSMState = FSMState;
@@ -11,6 +14,7 @@ var FSM = (function () {
         var _this = this;
         this.stateObjects = new Map();
         this.registerState = function (key, stateObject) {
+            stateObject.setFSM(_this);
             _this.stateObjects.set(key, stateObject);
         };
         this.update = function (deltaTime) {

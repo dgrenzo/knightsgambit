@@ -13,41 +13,35 @@ var __extends = (this && this.__extends) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
-var RBoard_1 = require("./RBoard");
+var SceneRenderer_1 = require("../SceneRenderer");
 var TILE_WIDTH = 64;
 var TILE_HEIGHT = 32;
-var RBoardIso = (function (_super) {
-    __extends(RBoardIso, _super);
-    function RBoardIso(m_app) {
-        var _this = _super.call(this, m_app) || this;
-        _this.m_app = m_app;
+var SceneRendererIsometric = (function (_super) {
+    __extends(SceneRendererIsometric, _super);
+    function SceneRendererIsometric() {
+        var _this = _super.call(this) || this;
         _this.TILE_WIDTH = TILE_WIDTH;
         _this.TILE_HEIGHT = TILE_HEIGHT;
         _this.HALF_TILE_WIDTH = TILE_WIDTH / 2;
         _this.HALF_TILE_HEIGHT = TILE_HEIGHT / 2;
-        _this.positionElement = function (element) {
-            element.setPosition((element.x - element.y) * _this.HALF_TILE_WIDTH, (element.x + element.y) * _this.HALF_TILE_HEIGHT);
+        _this.positionElement = function (element, x, y) {
+            element.setPosition((x - y) * _this.HALF_TILE_WIDTH, (x + y) * _this.HALF_TILE_HEIGHT);
         };
-        _this.sortElements = function () {
-            _this.m_elements
+        _this.sortElements = function (elements) {
+            elements
                 .sort(function (a, b) {
                 return _this.getElementDepth(a) - _this.getElementDepth(b);
             })
                 .forEach(function (e) {
-                _this.m_container.addChild(e.sprite);
+                _this.m_container.addChild(_this.m_renderables.get(e.id).sprite);
             });
         };
         _this.getElementDepth = function (element) {
-            return (element.x + element.y) + element.offset;
+            return (element.x + element.y) + element.GetInfo().depth;
         };
         _this.m_container.position.set(300, 100);
-        _this.m_container.scale.set(1);
         return _this;
     }
-    RBoardIso.prototype.addElement = function (element) {
-        _super.prototype.addElement.call(this, element);
-        this.positionElement(element);
-    };
-    return RBoardIso;
-}(RBoard_1.RBoard));
-exports.RBoardIso = RBoardIso;
+    return SceneRendererIsometric;
+}(SceneRenderer_1.SceneRenderer));
+exports.SceneRendererIsometric = SceneRendererIsometric;

@@ -9,20 +9,10 @@ function factionToString(faction) {
     }
 }
 exports.factionToString = factionToString;
-function pieceToString(piece) {
-    switch (piece) {
-        case types_1.PIECE.PAWN: return 'pawn';
-        case types_1.PIECE.KNIGHT: return 'knight';
-        case types_1.PIECE.ROOK: return 'rook';
-        case types_1.PIECE.BISHOP: return 'bishop';
-        case types_1.PIECE.QUEEN: return 'queen';
-        case types_1.PIECE.KING: return 'king';
-    }
+function getAssetURL(asset) {
+    return 'assets/images/isometric/' + asset;
 }
-function toAssetString(faction, piece) {
-    return 'assets/images/isometric/' + factionToString(faction) + '_' + pieceToString(piece) + '.png';
-}
-exports.toAssetString = toAssetString;
+exports.getAssetURL = getAssetURL;
 
 },{"./types":16}],2:[function(require,module,exports){
 "use strict";
@@ -30,6 +20,9 @@ Object.defineProperty(exports, "__esModule", { value: true });
 var FSMState = (function () {
     function FSMState() {
     }
+    FSMState.prototype.setFSM = function (fsm) {
+        this.m_fsm = fsm;
+    };
     return FSMState;
 }());
 exports.FSMState = FSMState;
@@ -38,6 +31,7 @@ var FSM = (function () {
         var _this = this;
         this.stateObjects = new Map();
         this.registerState = function (key, stateObject) {
+            stateObject.setFSM(_this);
             _this.stateObjects.set(key, stateObject);
         };
         this.update = function (deltaTime) {
@@ -68,6 +62,267 @@ exports.FSM = FSM;
 
 },{}],3:[function(require,module,exports){
 "use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+var id_ticker = 0;
+var Entity = (function () {
+    function Entity(x, y) {
+        this.x = x;
+        this.y = y;
+        this.id = id_ticker++;
+        this.depth_offset = 0;
+    }
+    Entity.prototype.GetInfo = function () {
+        return {
+            asset: this.getAssetInfo(),
+            depth: this.depth_offset,
+            id: this.id
+        };
+    };
+    Entity.prototype.getAssetInfo = function () {
+        return {
+            name: 'undefined.png'
+        };
+    };
+    return Entity;
+}());
+exports.Entity = Entity;
+
+},{}],4:[function(require,module,exports){
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+var Scene = (function () {
+    function Scene() {
+    }
+    Scene.prototype.addElement = function (element) {
+        this.m_elements.push(element);
+    };
+    Scene.prototype.getElements = function () {
+        return this.m_elements;
+    };
+    Scene.prototype.getElement = function (id) {
+        for (var i = 0; i < this.m_elements.length; i++) {
+            if (this.m_elements[i].id === id) {
+                return this.m_elements[i];
+            }
+        }
+        return null;
+    };
+    return Scene;
+}());
+exports.Scene = Scene;
+
+},{}],5:[function(require,module,exports){
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+var ChessBoard_1 = require("./board/ChessBoard");
+var render_1 = require("../render/render");
+var FSM_1 = require("../engine/FSM");
+var SetupState_1 = require("./states/SetupState");
+var PlayState_1 = require("./states/PlayState");
+var GameState;
+(function (GameState) {
+    GameState[GameState["SETUP"] = 0] = "SETUP";
+    GameState[GameState["PLAY"] = 1] = "PLAY";
+})(GameState = exports.GameState || (exports.GameState = {}));
+var GameController = (function () {
+    function GameController(m_config) {
+        this.m_config = m_config;
+        this.m_fsm = new FSM_1.FSM();
+        m_config.pixi_app.ticker.add(this.m_fsm.update);
+        this.m_board = new ChessBoard_1.ChessBoard(m_config);
+        this.m_renderer = render_1.CreateRenderer(m_config);
+        this.m_fsm.registerState(GameState.SETUP, new SetupState_1.SetupState({
+            board: this.m_board,
+            renderer: this.m_renderer,
+            board_data_path: './assets/data/levels/001.json',
+        }));
+        this.m_fsm.registerState(GameState.PLAY, new PlayState_1.PlayState(this.m_board, this.m_renderer));
+        m_config.pixi_app.stage.addChild(this.m_renderer.stage);
+        this.m_fsm.enterState(GameState.SETUP);
+    }
+    return GameController;
+}());
+exports.GameController = GameController;
+
+},{"../engine/FSM":2,"../render/render":12,"./board/ChessBoard":6,"./states/PlayState":9,"./states/SetupState":10}],6:[function(require,module,exports){
+"use strict";
+var __extends = (this && this.__extends) || (function () {
+    var extendStatics = function (d, b) {
+        extendStatics = Object.setPrototypeOf ||
+            ({ __proto__: [] } instanceof Array && function (d, b) { d.__proto__ = b; }) ||
+            function (d, b) { for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p]; };
+        return extendStatics(d, b);
+    };
+    return function (d, b) {
+        extendStatics(d, b);
+        function __() { this.constructor = d; }
+        d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
+    };
+})();
+Object.defineProperty(exports, "__esModule", { value: true });
+var Tile_1 = require("./Tile");
+var ChessPiece_1 = require("../pieces/ChessPiece");
+var Scene_1 = require("../../engine/scene/Scene");
+var COLOR = {
+    BLACK: 0x393939,
+    WHITE: 0xF0F0F0,
+};
+var ChessBoard = (function (_super) {
+    __extends(ChessBoard, _super);
+    function ChessBoard(config) {
+        var _this = _super.call(this) || this;
+        _this.config = config;
+        return _this;
+    }
+    ChessBoard.prototype.init = function (board_config) {
+        var _this = this;
+        this.m_elements = [];
+        board_config.entities.forEach(function (p_cfg) {
+            _this.addElement(new ChessPiece_1.ChessPiece(p_cfg));
+        });
+        board_config.tiles.forEach(function (pos) {
+            _this.addElement(new Tile_1.Tile(pos[0], pos[1]));
+        });
+    };
+    return ChessBoard;
+}(Scene_1.Scene));
+exports.ChessBoard = ChessBoard;
+function GetTileColor(x, y) {
+    return (x + y) % 2;
+}
+exports.GetTileColor = GetTileColor;
+
+},{"../../engine/scene/Scene":4,"../pieces/ChessPiece":8,"./Tile":7}],7:[function(require,module,exports){
+"use strict";
+var __extends = (this && this.__extends) || (function () {
+    var extendStatics = function (d, b) {
+        extendStatics = Object.setPrototypeOf ||
+            ({ __proto__: [] } instanceof Array && function (d, b) { d.__proto__ = b; }) ||
+            function (d, b) { for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p]; };
+        return extendStatics(d, b);
+    };
+    return function (d, b) {
+        extendStatics(d, b);
+        function __() { this.constructor = d; }
+        d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
+    };
+})();
+Object.defineProperty(exports, "__esModule", { value: true });
+var Entity_1 = require("../../engine/scene/Entity");
+var ChessBoard_1 = require("./ChessBoard");
+var assets_1 = require("../../assets");
+var Tile = (function (_super) {
+    __extends(Tile, _super);
+    function Tile(x, y) {
+        var _this = _super.call(this, x, y) || this;
+        _this.depth_offset = -1;
+        _this.getAssetInfo = function () {
+            return {
+                name: assets_1.factionToString(ChessBoard_1.GetTileColor(_this.x, _this.y)) + '_tile.png',
+                offset_x: -32,
+                offset_y: -18,
+            };
+        };
+        return _this;
+    }
+    return Tile;
+}(Entity_1.Entity));
+exports.Tile = Tile;
+
+},{"../../assets":1,"../../engine/scene/Entity":3,"./ChessBoard":6}],8:[function(require,module,exports){
+"use strict";
+var __extends = (this && this.__extends) || (function () {
+    var extendStatics = function (d, b) {
+        extendStatics = Object.setPrototypeOf ||
+            ({ __proto__: [] } instanceof Array && function (d, b) { d.__proto__ = b; }) ||
+            function (d, b) { for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p]; };
+        return extendStatics(d, b);
+    };
+    return function (d, b) {
+        extendStatics(d, b);
+        function __() { this.constructor = d; }
+        d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
+    };
+})();
+Object.defineProperty(exports, "__esModule", { value: true });
+var types_1 = require("../../types");
+var Entity_1 = require("../../engine/scene/Entity");
+var assets_1 = require("../../assets");
+var ChessPiece = (function (_super) {
+    __extends(ChessPiece, _super);
+    function ChessPiece(info) {
+        var _this = _super.call(this, info.pos[0], info.pos[1]) || this;
+        _this.info = info;
+        _this.getAssetInfo = function () {
+            return {
+                name: assets_1.factionToString(_this.info.faction) + '_' + pieceToString(_this.info.type) + '.png',
+                offset_x: -16,
+                offset_y: -90,
+            };
+        };
+        return _this;
+    }
+    return ChessPiece;
+}(Entity_1.Entity));
+exports.ChessPiece = ChessPiece;
+function pieceToString(piece) {
+    switch (piece) {
+        case types_1.PIECE.PAWN: return 'pawn';
+        case types_1.PIECE.KNIGHT: return 'knight';
+        case types_1.PIECE.ROOK: return 'rook';
+        case types_1.PIECE.BISHOP: return 'bishop';
+        case types_1.PIECE.QUEEN: return 'queen';
+        case types_1.PIECE.KING: return 'king';
+    }
+}
+
+},{"../../assets":1,"../../engine/scene/Entity":3,"../../types":16}],9:[function(require,module,exports){
+"use strict";
+var __extends = (this && this.__extends) || (function () {
+    var extendStatics = function (d, b) {
+        extendStatics = Object.setPrototypeOf ||
+            ({ __proto__: [] } instanceof Array && function (d, b) { d.__proto__ = b; }) ||
+            function (d, b) { for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p]; };
+        return extendStatics(d, b);
+    };
+    return function (d, b) {
+        extendStatics(d, b);
+        function __() { this.constructor = d; }
+        d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
+    };
+})();
+Object.defineProperty(exports, "__esModule", { value: true });
+var FSM_1 = require("../../engine/FSM");
+var ChessPiece_1 = require("../pieces/ChessPiece");
+var PlayState = (function (_super) {
+    __extends(PlayState, _super);
+    function PlayState(m_board, m_renderer) {
+        var _this = _super.call(this) || this;
+        _this.m_board = m_board;
+        _this.m_renderer = m_renderer;
+        _this.enter = function () {
+            _this.m_renderer.registerClickListener(function (id) {
+                var target = _this.m_board.getElement(id);
+                if (target) {
+                    if (target instanceof ChessPiece_1.ChessPiece) {
+                        target.y--;
+                    }
+                }
+            });
+        };
+        _this.update = function (deltaTime) {
+            _this.m_renderer.renderScene(_this.m_board);
+        };
+        _this.exit = function () {
+        };
+        return _this;
+    }
+    return PlayState;
+}(FSM_1.FSMState));
+exports.PlayState = PlayState;
+
+},{"../../engine/FSM":2,"../pieces/ChessPiece":8}],10:[function(require,module,exports){
+"use strict";
 var __extends = (this && this.__extends) || (function () {
     var extendStatics = function (d, b) {
         extendStatics = Object.setPrototypeOf ||
@@ -83,190 +338,39 @@ var __extends = (this && this.__extends) || (function () {
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
 var PIXI = require("pixi.js");
-var ChessBoard_1 = require("./board/ChessBoard");
-var FSM_1 = require("../engine/FSM");
-var GameState;
-(function (GameState) {
-    GameState[GameState["SETUP"] = 0] = "SETUP";
-    GameState[GameState["PLAY"] = 1] = "PLAY";
-})(GameState = exports.GameState || (exports.GameState = {}));
-var GameController = (function () {
-    function GameController(m_config) {
-        this.m_config = m_config;
-        this.m_fsm = new FSM_1.FSM();
-        m_config.pixi_app.ticker.add(this.m_fsm.update);
-        this.m_board = new ChessBoard_1.ChessBoard(m_config);
-        this.m_fsm.registerState(GameState.SETUP, new SetupState(this.m_board, './assets/data/levels/001.json'));
-        this.m_fsm.enterState(GameState.SETUP);
-    }
-    return GameController;
-}());
-exports.GameController = GameController;
+var FSM_1 = require("../../engine/FSM");
+var GameController_1 = require("../GameController");
 var SetupState = (function (_super) {
     __extends(SetupState, _super);
-    function SetupState(board, board_data_path) {
+    function SetupState(opts) {
         var _this = _super.call(this) || this;
-        _this.board = board;
-        _this.board_data_path = board_data_path;
+        _this.opts = opts;
         _this.enter = function () {
-            _this.loader.load(function (loader, resources) {
-                var board_config = resources[_this.board_data_path].data;
-                _this.board.init(board_config);
-            });
+            _this.loader.load(_this.onLoadComplete);
+        };
+        _this.onLoadComplete = function (loader, resources) {
+            var board = _this.opts.board;
+            var renderer = _this.opts.renderer;
+            var path = _this.opts.board_data_path;
+            var board_config = resources[path].data;
+            board.init(board_config);
+            renderer.initializeScene(board);
+            _this.m_fsm.enterState(GameController_1.GameState.PLAY);
         };
         _this.update = function (deltaTime) {
         };
         _this.exit = function () {
+            _this.loader.destroy();
         };
         var loader = _this.loader = new PIXI.Loader();
-        loader.add(board_data_path);
+        loader.add(opts.board_data_path);
         return _this;
     }
     return SetupState;
 }(FSM_1.FSMState));
-var PlayState = (function (_super) {
-    __extends(PlayState, _super);
-    function PlayState() {
-        var _this = _super !== null && _super.apply(this, arguments) || this;
-        _this.enter = function () {
-        };
-        _this.update = function (deltaTime) {
-        };
-        _this.exit = function () {
-        };
-        return _this;
-    }
-    return PlayState;
-}(FSM_1.FSMState));
+exports.SetupState = SetupState;
 
-},{"../engine/FSM":2,"./board/ChessBoard":5,"pixi.js":58}],4:[function(require,module,exports){
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-var GameElement = (function () {
-    function GameElement() {
-    }
-    return GameElement;
-}());
-exports.GameElement = GameElement;
-
-},{}],5:[function(require,module,exports){
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-var Tile_1 = require("./Tile");
-var render_1 = require("../../render/render");
-var ChessPiece_1 = require("../pieces/ChessPiece");
-var COLOR = {
-    BLACK: 0x393939,
-    WHITE: 0xF0F0F0,
-};
-var ChessBoard = (function () {
-    function ChessBoard(config) {
-        this.config = config;
-        this.r_Board = render_1.CreateBoard(config);
-    }
-    ChessBoard.prototype.addElement = function (gameElement) {
-        this.r_Board.addElement(gameElement.render);
-    };
-    ChessBoard.prototype.init = function (board_config) {
-        var _this = this;
-        this.m_tiles = new Array();
-        board_config.entities.forEach(function (p_cfg) {
-            _this.addElement(new ChessPiece_1.ChessPiece(p_cfg));
-        });
-        board_config.tiles.forEach(function (pos) {
-            _this.addTile(pos[0], pos[1]);
-        });
-        this.r_Board.sortElements();
-    };
-    ChessBoard.prototype.addTile = function (x, y) {
-        var tile = new Tile_1.Tile(x, y, this.config);
-        this.m_tiles.push(tile);
-        this.addElement(tile);
-        return tile;
-    };
-    return ChessBoard;
-}());
-exports.ChessBoard = ChessBoard;
-function getTileColor(x, y) {
-    return (x + y) % 2;
-}
-exports.getTileColor = getTileColor;
-
-},{"../../render/render":15,"../pieces/ChessPiece":7,"./Tile":6}],6:[function(require,module,exports){
-"use strict";
-var __extends = (this && this.__extends) || (function () {
-    var extendStatics = function (d, b) {
-        extendStatics = Object.setPrototypeOf ||
-            ({ __proto__: [] } instanceof Array && function (d, b) { d.__proto__ = b; }) ||
-            function (d, b) { for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p]; };
-        return extendStatics(d, b);
-    };
-    return function (d, b) {
-        extendStatics(d, b);
-        function __() { this.constructor = d; }
-        d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
-    };
-})();
-Object.defineProperty(exports, "__esModule", { value: true });
-var render_1 = require("../../render/render");
-var GameElement_1 = require("../GameElement");
-var Tile = (function (_super) {
-    __extends(Tile, _super);
-    function Tile(x, y, config) {
-        var _this = _super.call(this) || this;
-        _this.x = x;
-        _this.y = y;
-        _this._render = render_1.CreateTile(x, y, config);
-        return _this;
-    }
-    Object.defineProperty(Tile.prototype, "render", {
-        get: function () {
-            return this._render;
-        },
-        enumerable: true,
-        configurable: true
-    });
-    return Tile;
-}(GameElement_1.GameElement));
-exports.Tile = Tile;
-
-},{"../../render/render":15,"../GameElement":4}],7:[function(require,module,exports){
-"use strict";
-var __extends = (this && this.__extends) || (function () {
-    var extendStatics = function (d, b) {
-        extendStatics = Object.setPrototypeOf ||
-            ({ __proto__: [] } instanceof Array && function (d, b) { d.__proto__ = b; }) ||
-            function (d, b) { for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p]; };
-        return extendStatics(d, b);
-    };
-    return function (d, b) {
-        extendStatics(d, b);
-        function __() { this.constructor = d; }
-        d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
-    };
-})();
-Object.defineProperty(exports, "__esModule", { value: true });
-var RPiece_1 = require("../../render/pieces/RPiece");
-var GameElement_1 = require("../GameElement");
-var ChessPiece = (function (_super) {
-    __extends(ChessPiece, _super);
-    function ChessPiece(info) {
-        var _this = _super.call(this) || this;
-        _this._render = new RPiece_1.RPiece(info);
-        return _this;
-    }
-    Object.defineProperty(ChessPiece.prototype, "render", {
-        get: function () {
-            return this._render;
-        },
-        enumerable: true,
-        configurable: true
-    });
-    return ChessPiece;
-}(GameElement_1.GameElement));
-exports.ChessPiece = ChessPiece;
-
-},{"../../render/pieces/RPiece":14,"../GameElement":4}],8:[function(require,module,exports){
+},{"../../engine/FSM":2,"../GameController":5,"pixi.js":58}],11:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 var PIXI = require("pixi.js");
@@ -285,56 +389,113 @@ window.addEventListener('resize', WindowResize);
 Promise.resolve().then(WindowResize);
 var game = new GameController_1.GameController({ pixi_app: pixi_app, mode: render_1.RenderMode.ISOMETRIC });
 
-},{"./game/GameController":3,"./render/render":15,"pixi.js":58}],9:[function(require,module,exports){
+},{"./game/GameController":5,"./render/render":12,"pixi.js":58}],12:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-var RElement = (function () {
-    function RElement(x, y) {
-        this.x = x;
-        this.y = y;
+var SceneRendererIsometric_1 = require("./scene/isometric/SceneRendererIsometric");
+var RenderMode;
+(function (RenderMode) {
+    RenderMode[RenderMode["ISOMETRIC"] = 0] = "ISOMETRIC";
+})(RenderMode = exports.RenderMode || (exports.RenderMode = {}));
+function CreateRenderer(config) {
+    switch (config.mode) {
+        case RenderMode.ISOMETRIC: return new SceneRendererIsometric_1.SceneRendererIsometric();
+        default: return new SceneRendererIsometric_1.SceneRendererIsometric();
     }
-    Object.defineProperty(RElement.prototype, "sprite", {
+}
+exports.CreateRenderer = CreateRenderer;
+
+},{"./scene/isometric/SceneRendererIsometric":15}],13:[function(require,module,exports){
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+var PIXI = require("pixi.js");
+var assets_1 = require("../../assets");
+var REntity = (function () {
+    function REntity(info) {
+        this.m_sprite = new PIXI.Sprite();
+        this.m_sprite.interactive = this.m_sprite.buttonMode = true;
+        this.id = info.id;
+        var asset = info.asset;
+        var image = PIXI.Sprite.from(assets_1.getAssetURL(asset.name));
+        image.position.x = asset.offset_x ? asset.offset_x : 0;
+        image.position.y = asset.offset_y ? asset.offset_y : 0;
+        this.m_sprite.addChild(image);
+    }
+    Object.defineProperty(REntity.prototype, "sprite", {
         get: function () {
             return this.m_sprite;
         },
         enumerable: true,
         configurable: true
     });
-    Object.defineProperty(RElement.prototype, "offset", {
+    REntity.prototype.setPosition = function (x, y) {
+        this.m_sprite.position.set(x, y);
+    };
+    return REntity;
+}());
+exports.REntity = REntity;
+
+},{"../../assets":1,"pixi.js":58}],14:[function(require,module,exports){
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+var PIXI = require("pixi.js");
+var REntity_1 = require("./REntity");
+var SceneRenderer = (function () {
+    function SceneRenderer() {
+        var _this = this;
+        this.s_onEntityClicked = [];
+        this.registerClickListener = function (listener) {
+            _this.s_onEntityClicked.push(listener);
+        };
+        this.initializeScene = function (scene) {
+            _this.m_renderables = new Map();
+            _this.m_container.removeChildren();
+            scene.getElements().forEach(function (element) {
+                var renderable = _this.addEntity(element);
+                renderable.sprite.on('pointerdown', function () {
+                    _this.onClicked(renderable.id);
+                });
+            });
+        };
+        this.removeEntity = function (entity) {
+            var renderable = _this.m_renderables.get(entity.id);
+            if (renderable) {
+                _this.m_renderables.delete(entity.id);
+            }
+            return renderable;
+        };
+        this.addEntity = function (entity) {
+            _this.m_renderables.set(entity.id, new REntity_1.REntity(entity.GetInfo()));
+            return _this.m_renderables.get(entity.id);
+        };
+        this.onClicked = function (id) {
+            _this.s_onEntityClicked.forEach(function (fn) {
+                fn(id);
+            });
+        };
+        this.m_container = new PIXI.Container();
+        this.m_container.on('pointerdown', function () {
+        });
+    }
+    Object.defineProperty(SceneRenderer.prototype, "stage", {
         get: function () {
-            return 0;
+            return this.m_container;
         },
         enumerable: true,
         configurable: true
     });
-    RElement.prototype.setPosition = function (x, y) {
-        this.m_sprite.position.set(x, y);
+    SceneRenderer.prototype.renderScene = function (scene) {
+        var _this = this;
+        scene.getElements().forEach(function (element) {
+            _this.positionElement(_this.m_renderables.get(element.id), element.x, element.y);
+        });
+        this.sortElements(scene.getElements());
     };
-    return RElement;
+    return SceneRenderer;
 }());
-exports.RElement = RElement;
+exports.SceneRenderer = SceneRenderer;
 
-},{}],10:[function(require,module,exports){
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-var PIXI = require("pixi.js");
-var RBoard = (function () {
-    function RBoard(m_app) {
-        this.m_app = m_app;
-        this.m_elements = [];
-        this.m_container = new PIXI.Container;
-        m_app.stage.addChild(this.m_container);
-    }
-    RBoard.prototype.addElement = function (element) {
-        this.m_elements.push(element);
-        this.m_container.addChild(element.sprite);
-    };
-    ;
-    return RBoard;
-}());
-exports.RBoard = RBoard;
-
-},{"pixi.js":58}],11:[function(require,module,exports){
+},{"./REntity":13,"pixi.js":58}],15:[function(require,module,exports){
 "use strict";
 var __extends = (this && this.__extends) || (function () {
     var extendStatics = function (d, b) {
@@ -350,188 +511,40 @@ var __extends = (this && this.__extends) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
-var RBoard_1 = require("./RBoard");
+var SceneRenderer_1 = require("../SceneRenderer");
 var TILE_WIDTH = 64;
 var TILE_HEIGHT = 32;
-var RBoardIso = (function (_super) {
-    __extends(RBoardIso, _super);
-    function RBoardIso(m_app) {
-        var _this = _super.call(this, m_app) || this;
-        _this.m_app = m_app;
+var SceneRendererIsometric = (function (_super) {
+    __extends(SceneRendererIsometric, _super);
+    function SceneRendererIsometric() {
+        var _this = _super.call(this) || this;
         _this.TILE_WIDTH = TILE_WIDTH;
         _this.TILE_HEIGHT = TILE_HEIGHT;
         _this.HALF_TILE_WIDTH = TILE_WIDTH / 2;
         _this.HALF_TILE_HEIGHT = TILE_HEIGHT / 2;
-        _this.positionElement = function (element) {
-            element.setPosition((element.x - element.y) * _this.HALF_TILE_WIDTH, (element.x + element.y) * _this.HALF_TILE_HEIGHT);
+        _this.positionElement = function (element, x, y) {
+            element.setPosition((x - y) * _this.HALF_TILE_WIDTH, (x + y) * _this.HALF_TILE_HEIGHT);
         };
-        _this.sortElements = function () {
-            _this.m_elements
+        _this.sortElements = function (elements) {
+            elements
                 .sort(function (a, b) {
                 return _this.getElementDepth(a) - _this.getElementDepth(b);
             })
                 .forEach(function (e) {
-                _this.m_container.addChild(e.sprite);
+                _this.m_container.addChild(_this.m_renderables.get(e.id).sprite);
             });
         };
         _this.getElementDepth = function (element) {
-            return (element.x + element.y) + element.offset;
+            return (element.x + element.y) + element.GetInfo().depth;
         };
         _this.m_container.position.set(300, 100);
-        _this.m_container.scale.set(1);
         return _this;
     }
-    RBoardIso.prototype.addElement = function (element) {
-        _super.prototype.addElement.call(this, element);
-        this.positionElement(element);
-    };
-    return RBoardIso;
-}(RBoard_1.RBoard));
-exports.RBoardIso = RBoardIso;
+    return SceneRendererIsometric;
+}(SceneRenderer_1.SceneRenderer));
+exports.SceneRendererIsometric = SceneRendererIsometric;
 
-},{"./RBoard":10}],12:[function(require,module,exports){
-"use strict";
-var __extends = (this && this.__extends) || (function () {
-    var extendStatics = function (d, b) {
-        extendStatics = Object.setPrototypeOf ||
-            ({ __proto__: [] } instanceof Array && function (d, b) { d.__proto__ = b; }) ||
-            function (d, b) { for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p]; };
-        return extendStatics(d, b);
-    };
-    return function (d, b) {
-        extendStatics(d, b);
-        function __() { this.constructor = d; }
-        d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
-    };
-})();
-Object.defineProperty(exports, "__esModule", { value: true });
-var RElement_1 = require("../RElement");
-var RTile = (function (_super) {
-    __extends(RTile, _super);
-    function RTile(x, y) {
-        var _this = _super.call(this, x, y) || this;
-        _this.x = x;
-        _this.y = y;
-        return _this;
-    }
-    Object.defineProperty(RTile.prototype, "offset", {
-        get: function () {
-            return -4 / 16;
-        },
-        enumerable: true,
-        configurable: true
-    });
-    return RTile;
-}(RElement_1.RElement));
-exports.RTile = RTile;
-
-},{"../RElement":9}],13:[function(require,module,exports){
-"use strict";
-var __extends = (this && this.__extends) || (function () {
-    var extendStatics = function (d, b) {
-        extendStatics = Object.setPrototypeOf ||
-            ({ __proto__: [] } instanceof Array && function (d, b) { d.__proto__ = b; }) ||
-            function (d, b) { for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p]; };
-        return extendStatics(d, b);
-    };
-    return function (d, b) {
-        extendStatics(d, b);
-        function __() { this.constructor = d; }
-        d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
-    };
-})();
-Object.defineProperty(exports, "__esModule", { value: true });
-var PIXI = require("pixi.js");
-var assets_1 = require("../../assets");
-var ChessBoard_1 = require("../../game/board/ChessBoard");
-var RTile_1 = require("./RTile");
-var main_1 = require("../../main");
-function getTileString(x, y) {
-    return 'assets/images/isometric/' + assets_1.factionToString(ChessBoard_1.getTileColor(x, y)) + '_tile.png';
-}
-var RTileIso = (function (_super) {
-    __extends(RTileIso, _super);
-    function RTileIso(x, y) {
-        var _this = _super.call(this, x, y) || this;
-        _this.x = x;
-        _this.y = y;
-        _this.m_sprite = new PIXI.Sprite();
-        var tile = PIXI.Sprite.from(getTileString(x, y));
-        tile.position.set(-32, -18);
-        _this.m_sprite.addChild(tile);
-        if (main_1.DEBUG) {
-            var label = new PIXI.Text(x + ',' + y, {
-                fill: 0xFF0000,
-                fontSize: 12,
-            });
-            label.anchor.set(0.5, 1);
-            label.scale.set(0.35);
-            _this.m_sprite.addChild(label);
-        }
-        return _this;
-    }
-    return RTileIso;
-}(RTile_1.RTile));
-exports.RTileIso = RTileIso;
-
-},{"../../assets":1,"../../game/board/ChessBoard":5,"../../main":8,"./RTile":12,"pixi.js":58}],14:[function(require,module,exports){
-"use strict";
-var __extends = (this && this.__extends) || (function () {
-    var extendStatics = function (d, b) {
-        extendStatics = Object.setPrototypeOf ||
-            ({ __proto__: [] } instanceof Array && function (d, b) { d.__proto__ = b; }) ||
-            function (d, b) { for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p]; };
-        return extendStatics(d, b);
-    };
-    return function (d, b) {
-        extendStatics(d, b);
-        function __() { this.constructor = d; }
-        d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
-    };
-})();
-Object.defineProperty(exports, "__esModule", { value: true });
-var PIXI = require("pixi.js");
-var assets_1 = require("../../assets");
-var RElement_1 = require("../RElement");
-var RPiece = (function (_super) {
-    __extends(RPiece, _super);
-    function RPiece(info) {
-        var _this = _super.call(this, info.pos[0], info.pos[1]) || this;
-        _this.m_sprite = new PIXI.Sprite();
-        var piece = PIXI.Sprite.from(assets_1.toAssetString(info.faction, info.type));
-        piece.position.set(-16, -90);
-        _this.m_sprite.addChild(piece);
-        return _this;
-    }
-    return RPiece;
-}(RElement_1.RElement));
-exports.RPiece = RPiece;
-
-},{"../../assets":1,"../RElement":9,"pixi.js":58}],15:[function(require,module,exports){
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-var RBoardIso_1 = require("./board/RBoardIso");
-var RTileIso_1 = require("./board/RTileIso");
-var RenderMode;
-(function (RenderMode) {
-    RenderMode[RenderMode["ISOMETRIC"] = 0] = "ISOMETRIC";
-})(RenderMode = exports.RenderMode || (exports.RenderMode = {}));
-function CreateBoard(config) {
-    switch (config.mode) {
-        case RenderMode.ISOMETRIC: return new RBoardIso_1.RBoardIso(config.pixi_app);
-        default: return new RBoardIso_1.RBoardIso(config.pixi_app);
-    }
-}
-exports.CreateBoard = CreateBoard;
-function CreateTile(x, y, config) {
-    switch (config.mode) {
-        case RenderMode.ISOMETRIC: return new RTileIso_1.RTileIso(x, y);
-        default: return new RTileIso_1.RTileIso(x, y);
-    }
-}
-exports.CreateTile = CreateTile;
-
-},{"./board/RBoardIso":11,"./board/RTileIso":13}],16:[function(require,module,exports){
+},{"../SceneRenderer":14}],16:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 var FACTION;
@@ -45087,4 +45100,4 @@ module.exports = {
   }
 };
 
-},{}]},{},[8]);
+},{}]},{},[11]);

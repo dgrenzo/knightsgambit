@@ -1,41 +1,46 @@
 "use strict";
+var __extends = (this && this.__extends) || (function () {
+    var extendStatics = function (d, b) {
+        extendStatics = Object.setPrototypeOf ||
+            ({ __proto__: [] } instanceof Array && function (d, b) { d.__proto__ = b; }) ||
+            function (d, b) { for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p]; };
+        return extendStatics(d, b);
+    };
+    return function (d, b) {
+        extendStatics(d, b);
+        function __() { this.constructor = d; }
+        d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
+    };
+})();
 Object.defineProperty(exports, "__esModule", { value: true });
 var Tile_1 = require("./Tile");
-var render_1 = require("../../render/render");
 var ChessPiece_1 = require("../pieces/ChessPiece");
+var Scene_1 = require("../../engine/scene/Scene");
 var COLOR = {
     BLACK: 0x393939,
     WHITE: 0xF0F0F0,
 };
-var ChessBoard = (function () {
+var ChessBoard = (function (_super) {
+    __extends(ChessBoard, _super);
     function ChessBoard(config) {
-        this.config = config;
-        this.r_Board = render_1.CreateBoard(config);
+        var _this = _super.call(this) || this;
+        _this.config = config;
+        return _this;
     }
-    ChessBoard.prototype.addElement = function (gameElement) {
-        this.r_Board.addElement(gameElement.render);
-    };
     ChessBoard.prototype.init = function (board_config) {
         var _this = this;
-        this.m_tiles = new Array();
+        this.m_elements = [];
         board_config.entities.forEach(function (p_cfg) {
             _this.addElement(new ChessPiece_1.ChessPiece(p_cfg));
         });
         board_config.tiles.forEach(function (pos) {
-            _this.addTile(pos[0], pos[1]);
+            _this.addElement(new Tile_1.Tile(pos[0], pos[1]));
         });
-        this.r_Board.sortElements();
-    };
-    ChessBoard.prototype.addTile = function (x, y) {
-        var tile = new Tile_1.Tile(x, y, this.config);
-        this.m_tiles.push(tile);
-        this.addElement(tile);
-        return tile;
     };
     return ChessBoard;
-}());
+}(Scene_1.Scene));
 exports.ChessBoard = ChessBoard;
-function getTileColor(x, y) {
+function GetTileColor(x, y) {
     return (x + y) % 2;
 }
-exports.getTileColor = getTileColor;
+exports.GetTileColor = GetTileColor;
