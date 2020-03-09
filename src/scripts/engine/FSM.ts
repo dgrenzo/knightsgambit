@@ -5,6 +5,10 @@ interface IFSMState {
 }
 
 export abstract class FSMState implements IFSMState {
+  protected m_fsm : FSM;
+  public setFSM(fsm : FSM) {
+    this.m_fsm = fsm;
+  }
   public abstract enter : () => void;
   public abstract update : (deltaTime: number) => void;
   public abstract exit : () => void;
@@ -15,7 +19,8 @@ export class FSM {
   private _state : number;
   private stateObjects = new Map<number, IFSMState>();
 
-  public registerState = (key : number, stateObject : IFSMState) => {
+  public registerState = (key : number, stateObject : FSMState) => {
+    stateObject.setFSM(this);
     this.stateObjects.set(key, stateObject);
   }
 

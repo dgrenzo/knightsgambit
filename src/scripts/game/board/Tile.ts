@@ -1,5 +1,3 @@
-import { GameConfig } from "../GameController";
-
 import { Entity } from "../../engine/scene/Entity";
 import {GetTileColor} from './ChessBoard';
 

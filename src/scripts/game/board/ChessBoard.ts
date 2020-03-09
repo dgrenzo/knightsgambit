@@ -1,4 +1,4 @@
-import {FACTION, PIECE} from '../../types'
+import {FACTION} from '../../types'
 import { Tile } from './Tile';
 import { GameConfig } from '../GameController';
 import { ChessPiece, PieceInfo } from '../pieces/ChessPiece';
@@ -16,21 +16,16 @@ export interface IBoardConfig {
 
 export class ChessBoard extends Scene {
 
-  private m_tiles : Tile[];
-
   constructor(private config : GameConfig) {
     super();
   }
 
   public init (board_config : IBoardConfig) {
     this.m_elements = [];
-    this.m_tiles = new Array<Tile>();
-
     board_config.entities.forEach( (p_cfg : PieceInfo)=> {
       this.addElement(new ChessPiece(p_cfg))
     });
     board_config.tiles.forEach( (pos) => {
-      
       this.addElement(new Tile(pos[0], pos[1]));
     });
   }
