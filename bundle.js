@@ -379,6 +379,7 @@ var render_1 = require("./render/render");
 exports.DEBUG = false;
 PIXI.settings.SCALE_MODE = PIXI.SCALE_MODES.NEAREST;
 var pixi_app = new PIXI.Application({
+    forceCanvas: true,
     backgroundColor: 0x000011,
     view: document.getElementById('game_canvas')
 });
