@@ -1,4 +1,4 @@
-import { GameConfig } from "../game/GameController";
+import { GameConfig } from "../../game/GameController";
 import { SceneRendererIsometric } from './scene/isometric/SceneRendererIsometric';
 import { SceneRenderer } from "./scene/SceneRenderer";
 

@@ -1,6 +1,6 @@
 import * as PIXI from 'pixi.js'
-import { AssetInfo, getAssetURL } from '../../assets';
-import { IEntityInfo } from '../../engine/scene/Entity'
+import { AssetInfo, getAssetURL } from '../../../assets';
+import { IEntityInfo } from '../../scene/Entity'
 
 export class REntity {
   public readonly id : number;
@@ -8,6 +8,7 @@ export class REntity {
 
   constructor (info : IEntityInfo) {
     this.m_sprite = new PIXI.Sprite();
+    this.m_sprite.interactive = this.m_sprite.buttonMode = true;
 
     this.id = info.id;
 

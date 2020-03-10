@@ -1,7 +1,7 @@
 import * as PIXI from 'pixi.js'
 import { REntity } from '../REntity';
 import { SceneRenderer } from '../SceneRenderer';
-import { Entity } from '../../../engine/scene/Entity';
+import { Entity } from '../../../scene/Entity';
 
 const TILE_WIDTH : number = 64;
 const TILE_HEIGHT : number = 32;

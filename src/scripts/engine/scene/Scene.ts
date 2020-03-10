@@ -12,4 +12,13 @@ export class Scene {
     return this.m_elements;
   }
 
+  public getElement(id : number) : Entity {
+    for (let i = 0; i < this.m_elements.length; i ++) {
+      if (this.m_elements[i].id === id) {
+        return this.m_elements[i];
+      }
+    }
+    return null;
+  }
+
 }

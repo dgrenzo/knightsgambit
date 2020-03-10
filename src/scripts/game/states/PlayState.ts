@@ -1,19 +1,21 @@
 import { FSMState } from "../../engine/FSM";
-import { ChessBoard } from "../board/ChessBoard";
-import { SceneRenderer } from "../../render/scene/SceneRenderer";
+import { GameController } from "../GameController";
+import { ChessPiece } from "../pieces/ChessPiece";
 
 
 export class PlayState extends FSMState {
-  constructor(private m_board : ChessBoard, private m_renderer : SceneRenderer) {
+  constructor(private gameController : GameController) {
     super();
   }
 
   public enter = () => {
+    this.gameController.on("PIECE_CLICKED", (data : {piece : ChessPiece}) => {
+      data.piece.y --;
+    })
 
   }
 
   public update = (deltaTime : number) => {
-    this.m_renderer.renderScene(this.m_board);
   }
 
   public exit = () => {

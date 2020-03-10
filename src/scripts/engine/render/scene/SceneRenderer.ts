@@ -1,7 +1,10 @@
 import * as PIXI from 'pixi.js';
 import { REntity } from "./REntity";
-import { Scene } from '../../engine/scene/Scene';
-import { Entity } from '../../engine/scene/Entity';
+import { Scene } from '../../scene/Scene';
+import { Entity } from '../../scene/Entity';
+import { EventManager } from '../../listener/event';
+
+
 
 export abstract class SceneRenderer {
   protected m_container : PIXI.Container;
@@ -12,6 +15,8 @@ export abstract class SceneRenderer {
   public abstract readonly TILE_HEIGHT : number;
   public abstract readonly HALF_TILE_WIDTH : number;
   public abstract readonly HALF_TILE_HEIGHT : number;
+
+  private m_eventManager = new EventManager<string>();
 
   constructor() {
     this.m_container = new PIXI.Container();
@@ -26,7 +31,19 @@ export abstract class SceneRenderer {
     this.m_container.removeChildren();
     scene.getElements().forEach(element => {
       let renderable = this.addEntity(element);
+
+      renderable.sprite.on('pointerdown', () => {
+        this.m_eventManager.emit("ENTITY_CLICKED", {id : renderable.id});
+      });
     })
+    this.renderScene(scene);
+  }
+
+  public on = (event_name : string, cb : (data:any) => void) => {
+    this.m_eventManager.add(event_name, cb);
+  }
+  public off = (event_name : string, cb : (data:any) => void) => {
+    this.m_eventManager.remove(event_name, cb);
   }
 
   public renderScene(scene : Scene) {

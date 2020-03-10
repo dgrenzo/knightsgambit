@@ -1,11 +1,12 @@
 import * as PIXI from "pixi.js";
 import { GameController } from "./game/GameController";
-import { RenderMode } from "./render/render";
+import { RenderMode } from "./engine/render/render";
 
 export const DEBUG = false;
 
 PIXI.settings.SCALE_MODE = PIXI.SCALE_MODES.NEAREST;
 let pixi_app : PIXI.Application = new PIXI.Application({
+  forceCanvas : true,
   backgroundColor : 0x000011,
   view : <HTMLCanvasElement>document.getElementById('game_canvas')
 });

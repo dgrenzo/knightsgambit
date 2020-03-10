@@ -1,6 +1,6 @@
 import * as PIXI from 'pixi.js';
 import { ChessBoard, IBoardConfig } from "../board/ChessBoard";
-import { SceneRenderer } from "../../render/scene/SceneRenderer";
+import { SceneRenderer } from "../../engine/render/scene/SceneRenderer";
 import { FSMState } from "../../engine/FSM";
 import { GameState } from '../GameController';
 

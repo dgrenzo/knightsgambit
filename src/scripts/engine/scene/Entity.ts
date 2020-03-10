@@ -13,13 +13,9 @@ export abstract class Entity {
   protected readonly depth_offset : number = 0;
 
 
-  constructor (public x : number, public y : number) {
-  }
+  public onClicked : ()=>void;
 
-  protected getAssetInfo() : AssetInfo {
-    return {
-      name : 'undefined.png'
-    }
+  constructor (public x : number, public y : number) {
   }
 
   public GetInfo() : IEntityInfo {
@@ -28,5 +24,11 @@ export abstract class Entity {
       depth : this.depth_offset,
       id : this.id
     };
+  }
+
+  protected getAssetInfo() : AssetInfo {
+    return {
+      name : 'undefined.png'
+    }
   }
 }
