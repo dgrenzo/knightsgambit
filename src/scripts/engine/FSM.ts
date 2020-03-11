@@ -6,6 +6,9 @@ interface IFSMState {
 
 export abstract class FSMState implements IFSMState {
   protected m_fsm : FSM;
+  constructor () {
+
+  }
   public setFSM(fsm : FSM) {
     this.m_fsm = fsm;
   }
@@ -14,6 +17,17 @@ export abstract class FSMState implements IFSMState {
   public abstract exit : () => void;
 }
 
+export class FSMStateSimple extends FSMState {
+  public enter : () => void;
+  public update : (deltaTime: number) => void;
+  public exit : () => void;
+  constructor(callbacks : IFSMState) {
+    super();
+    this.enter = callbacks.enter ? callbacks.enter : ()=>{};
+    this.exit = callbacks.exit ? callbacks.exit : ()=>{};
+    this.update = callbacks.update ? callbacks.update : (deltaTime:number)=>{};
+  }
+}
 
 export class FSM {
   private _state : number;

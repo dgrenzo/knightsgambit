@@ -3,6 +3,7 @@ import { ChessBoard, IBoardConfig } from "../board/ChessBoard";
 import { SceneRenderer } from "../../engine/render/scene/SceneRenderer";
 import { FSMState } from "../../engine/FSM";
 import { GameState } from '../GameController';
+import { EventManager } from '../../engine/listener/event';
 
 export interface ISetupStateArgs {
   board : ChessBoard,
@@ -12,6 +13,8 @@ export interface ISetupStateArgs {
 
 export class SetupState extends FSMState {
   private loader : PIXI.Loader;
+
+  private m_eventManager : EventManager<"COMPLETE"> = new EventManager();
 
   constructor(private opts : ISetupStateArgs) {
     super();
@@ -33,7 +36,11 @@ export class SetupState extends FSMState {
     board.init(board_config);
     renderer.initializeScene(board);
     
-    this.m_fsm.enterState(GameState.PLAY);
+    this.m_eventManager.emit("COMPLETE", null);
+  }
+
+  public onComplete(cb : ()=>void) {
+    this.m_eventManager.add("COMPLETE", cb);
   }
 
   public update = (deltaTime: number) => {

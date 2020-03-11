@@ -8,7 +8,7 @@ export enum RenderMode {
 
 export function CreateRenderer(config : GameConfig) : SceneRenderer {
   switch (config.mode) {
-    case RenderMode.ISOMETRIC : return new SceneRendererIsometric();
-    default : return new SceneRendererIsometric();
+    case RenderMode.ISOMETRIC : return new SceneRendererIsometric(config.pixi_app);
+    default : return new SceneRendererIsometric(config.pixi_app);
   }
 }

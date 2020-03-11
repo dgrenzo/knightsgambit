@@ -3,6 +3,7 @@ import { Tile } from './Tile';
 import { GameConfig } from '../GameController';
 import { ChessPiece, PieceInfo } from '../pieces/ChessPiece';
 import { Scene } from '../../engine/scene/Scene';
+import { Entity } from '../../engine/scene/Entity';
 
 const COLOR = {
   BLACK : 0x393939,
@@ -28,6 +29,16 @@ export class ChessBoard extends Scene {
     board_config.tiles.forEach( (pos) => {
       this.addElement(new Tile(pos[0], pos[1]));
     });
+  }
+
+  public getElementsAt(x : number, y : number) : Entity[] {
+    let elements : Entity[] = [];
+    this.m_elements.forEach( (ent) => {
+      if (ent.x === x && ent.y === y) {
+        elements.push(ent);
+      }
+    });
+    return elements;
   }
 }
 

@@ -8,11 +8,11 @@ export class Scene {
     this.m_elements.push(element);
   }
 
-  public getElements() : Entity[] {
+  public getElements = () : Entity[] => {
     return this.m_elements;
   }
 
-  public getElement(id : number) : Entity {
+  public getElement = (id : number) : Entity => {
     for (let i = 0; i < this.m_elements.length; i ++) {
       if (this.m_elements[i].id === id) {
         return this.m_elements[i];

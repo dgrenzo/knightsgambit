@@ -4,6 +4,7 @@ import { IEntityInfo } from '../../scene/Entity'
 
 export class REntity {
   public readonly id : number;
+  public offsetY : number = 0;
   protected m_sprite : PIXI.Sprite;
 
   constructor (info : IEntityInfo) {
@@ -25,7 +26,7 @@ export class REntity {
   }
   
   public setPosition(x : number, y : number) {
-    this.m_sprite.position.set(x,y);
+    this.m_sprite.position.set(x,y + this.offsetY);
   }
   
 }

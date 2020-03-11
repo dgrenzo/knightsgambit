@@ -19,8 +19,8 @@ export class ChessPiece extends Entity {
   public getAssetInfo = () : AssetInfo => {
     return {
       name : factionToString(this.info.faction) + '_' + pieceToString(this.info.type) + '.png',
-      offset_x : -16,
-      offset_y : -90,
+      offset_x : 16,
+      offset_y : -72,
     }
   }
 }
