@@ -29,8 +29,8 @@ export class SceneRendererIsometric extends SceneRenderer {
   public screenToTilePos = (global : PIXI.Point) : {x : number, y : number} => {
     let point = this.m_container.toLocal(global);
 
-    let game_y = Math.round((point.y / this.HALF_TILE_HEIGHT - point.x/this.HALF_TILE_WIDTH) / 2);
-    let game_x = Math.round((point.x + game_y * this.HALF_TILE_WIDTH) / 32 - 1);
+    let game_x = Math.round(point.y / this.TILE_HEIGHT + point.x / this.TILE_WIDTH) - 1;
+    let game_y = Math.round(point.y / this.TILE_HEIGHT - point.x / this.TILE_WIDTH);
 
     console.log(game_x + ' ' + game_y);
     return {
