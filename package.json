@@ -9,9 +9,7 @@
     "compile": "gulp compile",
     "rebuild": "gulp clean && gulp bundle && gulp copy",
     "serve": "gulp serve",
-    "test": "gulp test",
     "watch": "gulp watch",
-    "watchRefresh": "gulp watchRefresh",
     "deploy": "npm run rebuild && cd dist && git add --all && git commit -m \"gh-pages build\" && git push"
   },
   "author": "davdd",

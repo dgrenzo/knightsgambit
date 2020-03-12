@@ -1,14 +1,8 @@
 import {FACTION} from '../../types'
 import { Tile } from './Tile';
-import { GameConfig } from '../GameController';
-import { ChessPiece, PieceInfo } from '../pieces/ChessPiece';
+import { ChessPiece, PieceInfo } from './pieces/ChessPiece';
 import { Scene } from '../../engine/scene/Scene';
 import { Entity } from '../../engine/scene/Entity';
-
-const COLOR = {
-  BLACK : 0x393939,
-  WHITE : 0xF0F0F0,
-}
 
 export interface IBoardConfig {
   tiles : Array<[number,number]>,
@@ -17,7 +11,7 @@ export interface IBoardConfig {
 
 export class ChessBoard extends Scene {
 
-  constructor(private config : GameConfig) {
+  constructor() {
     super();
   }
 
@@ -31,10 +25,13 @@ export class ChessBoard extends Scene {
     });
   }
 
-  public getElementsAt(x : number, y : number) : Entity[] {
+  public getElementsAt(pos : {x : number, y : number}) : Entity[] {
+    if (!pos) {
+      return []
+    }
     let elements : Entity[] = [];
     this.m_elements.forEach( (ent) => {
-      if (ent.x === x && ent.y === y) {
+      if (ent.x === pos.x && ent.y === pos.y) {
         elements.push(ent);
       }
     });

@@ -1,14 +1,15 @@
 import * as PIXI from 'pixi.js';
 import { ChessBoard } from "./board/ChessBoard";
 import { RenderMode, CreateRenderer } from '../engine/render/render';
-import { FSM, FSMState} from '../engine/FSM';
+import { FSM } from '../engine/FSM';
 import { SceneRenderer } from '../engine/render/scene/SceneRenderer';
-import { SetupState, ISetupStateArgs } from './states/SetupState';
-import { PlayState } from './states/PlayState';
+import { SetupState } from './states/setup/SetupState';
+import { PlayState } from './states/play/PlayState';
 import { EventManager } from '../engine/listener/event';
-import { ChessPiece } from './pieces/ChessPiece';
-import { Tile } from './board/Tile';
+import { ChessPiece } from './board/pieces/ChessPiece';
 import { Entity } from '../engine/scene/Entity';
+import TileHighlighter from './extras/TileHighlighter';
+import { Tile } from './board/Tile';
 
 export type GameConfig = {
   pixi_app : PIXI.Application,
@@ -19,7 +20,6 @@ export enum GameState {
   SETUP = 0,
   PLAY,
 }
-
 
 export type ClickedData = {
   id:number
@@ -39,7 +39,6 @@ export class GameController {
   private m_fsm : FSM;
   private m_board : ChessBoard;
   private m_renderer : SceneRenderer;
-
   private m_eventManager = new EventManager<GameSignal>();
 
   constructor(private m_config : GameConfig) {
@@ -48,7 +47,7 @@ export class GameController {
     m_config.pixi_app.ticker.add(this.m_fsm.update);
 
 
-    this.m_board = new ChessBoard(m_config);
+    this.m_board = new ChessBoard();
     this.m_renderer = CreateRenderer(m_config);
 
     this.m_renderer.on("TILE_CLICKED", (data : {x : number, y : number}) => {
@@ -82,26 +81,13 @@ export class GameController {
       new PlayState(this)
     );
 
-
-    let targets : Entity[] = [];
-    this.m_renderer.on("POINTER_MOVE", (data : { x : number, y : number }) => {
-      if (targets.length > 0) {
-        targets.forEach((entity:Entity) => {
-          this.m_renderer.getRenderable(entity.id).offsetY = 0;
-        })
-      }
-      
-      targets = this.m_board.getElementsAt(data.x, data.y);
-      if (targets.length > 0) {
-        targets.forEach((entity:Entity) => {
-          this.m_renderer.getRenderable(entity.id).offsetY = -5;
-        })
-      }
-    });
-
-
     setupState.onComplete(() => {
+
       m_config.pixi_app.stage.addChild(this.m_renderer.stage);
+
+      let highligher = new TileHighlighter(this.m_renderer, this.m_board);
+      m_config.pixi_app.ticker.add(highligher.update);
+
       m_config.pixi_app.ticker.add(() => {
         this.m_renderer.renderScene(this.m_board);
       });
@@ -109,11 +95,16 @@ export class GameController {
     })
 
     this.m_fsm.enterState(GameState.SETUP);
-
   }
 
-  public getPieceAt = (x : number, y : number) : ChessPiece => {
-    let elements = this.m_board.getElementsAt(x, y);
+  public highlightTiles = (tiles: {x : number, y : number, id: number}[], highlight : boolean) => {
+    tiles.forEach(tile => {
+      this.m_renderer.getRenderable(tile.id).setFilter({highlight : highlight});
+    })
+  }
+
+  public getPieceAt = (pos : { x : number, y : number }) : ChessPiece => {
+    let elements = this.m_board.getElementsAt(pos);
     let piece = null;
     elements.forEach((entity:Entity) => {
       if (!piece && entity instanceof ChessPiece) {
@@ -121,6 +112,25 @@ export class GameController {
       }
     });
     return piece;
+  }
+
+  public removePiece = (piece : ChessPiece) => {
+    if (!piece) { 
+      return;
+    }
+    this.m_board.removeElement(piece.id);
+    this.m_renderer.removeEntity(piece);
+  }
+
+  public getTileAt = (pos : { x : number, y : number }) : Tile => {
+    let elements = this.m_board.getElementsAt(pos);
+    let tile = null;
+    elements.forEach((entity:Entity) => {
+      if (!tile && entity instanceof Tile) {
+        tile = entity;
+      }
+    });
+    return tile;
   }
 
 

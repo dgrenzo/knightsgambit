@@ -58,6 +58,7 @@ export abstract class SceneRenderer {
     let renderable = this.m_renderables.get(entity.id);
 
     if (renderable) {
+      this.m_container.removeChild(renderable.sprite);
       this.m_renderables.delete(entity.id);
     }
 

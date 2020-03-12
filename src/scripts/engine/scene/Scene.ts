@@ -21,4 +21,16 @@ export class Scene {
     return null;
   }
 
+  public removeElement = (id : number) : Entity => {
+    for (let i = 0; i < this.m_elements.length; i ++) {
+      if (this.m_elements[i].id === id) {
+
+        this.m_elements.splice(i, 1);
+
+        return this.m_elements[i];
+      }
+    }
+    return null;
+  }
+
 }

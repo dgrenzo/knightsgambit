@@ -1,9 +1,8 @@
 import * as PIXI from 'pixi.js';
-import { ChessBoard, IBoardConfig } from "../board/ChessBoard";
-import { SceneRenderer } from "../../engine/render/scene/SceneRenderer";
-import { FSMState } from "../../engine/FSM";
-import { GameState } from '../GameController';
-import { EventManager } from '../../engine/listener/event';
+import { ChessBoard, IBoardConfig } from "../../board/ChessBoard";
+import { SceneRenderer } from "../../../engine/render/scene/SceneRenderer";
+import { FSMState } from "../../../engine/FSM";
+import { EventManager } from '../../../engine/listener/event';
 
 export interface ISetupStateArgs {
   board : ChessBoard,

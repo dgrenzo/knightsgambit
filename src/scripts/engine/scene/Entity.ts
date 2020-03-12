@@ -12,9 +12,6 @@ export abstract class Entity {
   public readonly id = id_ticker ++;
   protected readonly depth_offset : number = 0;
 
-
-  public onClicked : ()=>void;
-
   constructor (public x : number, public y : number) {
   }
 

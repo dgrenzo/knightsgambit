@@ -1,28 +1,24 @@
-// gulpfile.js
-
 const settings = require("./package.json").settings;
 const gulp = require("gulp");
 const del = require("del");
 const ts = require("gulp-typescript");
 const browserify = require("browserify");
-const browserifyInc = require("browserify-incremental");
 const source = require("vinyl-source-stream");
 const buffer = require("vinyl-buffer");
-const uglify = require("gulp-uglify-es").default;
 const sourcemaps = require("gulp-sourcemaps");
 const gulpif = require("gulp-if");
 const changed = require("gulp-changed");
 const browserSync = require("browser-sync");
-const runSequence = require("run-sequence");
-const tape = require("gulp-tape");
-const through = require("through2");
-const fs = require("fs");
 const merge = require("merge2");
 
 const debug = false;
 
 if (debug) { console.log("=== DEBUG Environment ===") }
 else { console.log("=== RELEASE Environment ==="); }
+function gulpErr(msg) {
+  console.log(msg);
+  return true;
+}
 
 function browserReloadPromise() {
   return new Promise(function(resolve, reject) {
@@ -94,22 +90,8 @@ gulp.task("bundle", gulp.series("compile", () => {
         .bundle()
         .pipe(source(bundleFilename))
         .pipe(buffer())
-        .pipe(gulpif(debug, sourcemaps.init({ loadMaps: true })))
-        // .pipe(uglify({
-        //   compress: {
-        //     drop_console : true,
-        //   },
-        //   output: {
-        //     beautify: false,
-        //   },
-        //   parse : {
-        //     //html5_comments:false
-        //   }
-
-        // }))
-        //.pipe(gulpif(debug, sourcemaps.write()))
         .pipe(gulp.dest(dest))
-        //.on("error", gutil.log)
+        .on("error", gulpErr)
         .on("finish", () => {
             if (!debug) {
                 del([dest + "*.js", "!" + dest + bundleFilename]);
@@ -135,9 +117,8 @@ gulp.task("copy", () => {
 
 // Rebuild on change
 gulp.task("watch", () => {
-  gulp.series("bundle", "copy", "serve")();
-    //runSequence(["bundle", "copy"], "serve");
-    gulp.watch(settings.paths.src + "**", gulp.series("bundle", "copy", browserReloadPromise));
+  gulp.parallel("serve", gulp.series( "bundle", "copy", browserReloadPromise))();
+  gulp.watch(settings.paths.src + "**", gulp.series("bundle", "copy", browserReloadPromise));
 });
 
 // Launch the HTTP server
@@ -150,14 +131,6 @@ gulp.task("serve", () => {
     browserSync.init({
         "port": settings.port,
         "server": dest
-    });
-});
-
-// Rebuild on change and refresh the browser
-gulp.task("watchRefresh", () => {
-    runSequence(["bundle", "copy"], ["serve", "test"]);
-    gulp.watch(settings.paths.src + "**", () => {
-        runSequence(["bundle", "copy"], "test", browserReloadPromise);
     });
 });
 
