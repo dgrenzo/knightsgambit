@@ -13,29 +13,20 @@ var __extends = (this && this.__extends) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
-var FSM_1 = require("../../engine/FSM");
-var ChessPiece_1 = require("../pieces/ChessPiece");
+var FSM_1 = require("../../../engine/FSM");
+var TurnAction_1 = require("./turn/TurnAction");
 var PlayState = (function (_super) {
     __extends(PlayState, _super);
-    function PlayState(m_board, m_renderer) {
+    function PlayState(gameController) {
         var _this = _super.call(this) || this;
-        _this.m_board = m_board;
-        _this.m_renderer = m_renderer;
+        _this.gameController = gameController;
         _this.enter = function () {
-            _this.m_renderer.registerClickListener(function (id) {
-                var target = _this.m_board.getElement(id);
-                if (target) {
-                    if (target instanceof ChessPiece_1.ChessPiece) {
-                        target.y--;
-                    }
-                }
-            });
         };
         _this.update = function (deltaTime) {
-            _this.m_renderer.renderScene(_this.m_board);
         };
         _this.exit = function () {
         };
+        var current_turn = new TurnAction_1.TurnAction(gameController);
         return _this;
     }
     return PlayState;

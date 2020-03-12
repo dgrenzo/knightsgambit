@@ -14,18 +14,12 @@ var __extends = (this && this.__extends) || (function () {
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
 var Tile_1 = require("./Tile");
-var ChessPiece_1 = require("../pieces/ChessPiece");
+var ChessPiece_1 = require("./pieces/ChessPiece");
 var Scene_1 = require("../../engine/scene/Scene");
-var COLOR = {
-    BLACK: 0x393939,
-    WHITE: 0xF0F0F0,
-};
 var ChessBoard = (function (_super) {
     __extends(ChessBoard, _super);
-    function ChessBoard(config) {
-        var _this = _super.call(this) || this;
-        _this.config = config;
-        return _this;
+    function ChessBoard() {
+        return _super.call(this) || this;
     }
     ChessBoard.prototype.init = function (board_config) {
         var _this = this;
@@ -36,6 +30,18 @@ var ChessBoard = (function (_super) {
         board_config.tiles.forEach(function (pos) {
             _this.addElement(new Tile_1.Tile(pos[0], pos[1]));
         });
+    };
+    ChessBoard.prototype.getElementsAt = function (pos) {
+        if (!pos) {
+            return [];
+        }
+        var elements = [];
+        this.m_elements.forEach(function (ent) {
+            if (ent.x === pos.x && ent.y === pos.y) {
+                elements.push(ent);
+            }
+        });
+        return elements;
     };
     return ChessBoard;
 }(Scene_1.Scene));

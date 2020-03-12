@@ -7,8 +7,8 @@ var RenderMode;
 })(RenderMode = exports.RenderMode || (exports.RenderMode = {}));
 function CreateRenderer(config) {
     switch (config.mode) {
-        case RenderMode.ISOMETRIC: return new SceneRendererIsometric_1.SceneRendererIsometric();
-        default: return new SceneRendererIsometric_1.SceneRendererIsometric();
+        case RenderMode.ISOMETRIC: return new SceneRendererIsometric_1.SceneRendererIsometric(config.pixi_app);
+        default: return new SceneRendererIsometric_1.SceneRendererIsometric(config.pixi_app);
     }
 }
 exports.CreateRenderer = CreateRenderer;

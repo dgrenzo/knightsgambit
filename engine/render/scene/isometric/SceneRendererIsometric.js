@@ -18,12 +18,22 @@ var TILE_WIDTH = 64;
 var TILE_HEIGHT = 32;
 var SceneRendererIsometric = (function (_super) {
     __extends(SceneRendererIsometric, _super);
-    function SceneRendererIsometric() {
-        var _this = _super.call(this) || this;
+    function SceneRendererIsometric(pixi) {
+        var _this = _super.call(this, pixi) || this;
         _this.TILE_WIDTH = TILE_WIDTH;
         _this.TILE_HEIGHT = TILE_HEIGHT;
         _this.HALF_TILE_WIDTH = TILE_WIDTH / 2;
         _this.HALF_TILE_HEIGHT = TILE_HEIGHT / 2;
+        _this.screenToTilePos = function (global) {
+            var point = _this.m_container.toLocal(global);
+            var game_x = Math.round(point.y / _this.TILE_HEIGHT + point.x / _this.TILE_WIDTH) - 1;
+            var game_y = Math.round(point.y / _this.TILE_HEIGHT - point.x / _this.TILE_WIDTH);
+            console.log(game_x + ' ' + game_y);
+            return {
+                x: game_x,
+                y: game_y
+            };
+        };
         _this.positionElement = function (element, x, y) {
             element.setPosition((x - y) * _this.HALF_TILE_WIDTH, (x + y) * _this.HALF_TILE_HEIGHT);
         };
@@ -39,7 +49,14 @@ var SceneRendererIsometric = (function (_super) {
         _this.getElementDepth = function (element) {
             return (element.x + element.y) + element.GetInfo().depth;
         };
-        _this.m_container.position.set(300, 100);
+        _this.m_container.position.set(500, 100);
+        _this.m_container.scale.set(2);
+        pixi.renderer.plugins.interaction.on('pointermove', function (evt) {
+            _this.m_eventManager.emit("POINTER_MOVE", _this.screenToTilePos(evt.data.global));
+        });
+        pixi.renderer.plugins.interaction.on('pointerdown', function (evt) {
+            _this.m_eventManager.emit("TILE_CLICKED", _this.screenToTilePos(evt.data.global));
+        });
         return _this;
     }
     return SceneRendererIsometric;

@@ -14,13 +14,14 @@ var __extends = (this && this.__extends) || (function () {
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
 var PIXI = require("pixi.js");
-var FSM_1 = require("../../engine/FSM");
-var GameController_1 = require("../GameController");
+var FSM_1 = require("../../../engine/FSM");
+var event_1 = require("../../../engine/listener/event");
 var SetupState = (function (_super) {
     __extends(SetupState, _super);
     function SetupState(opts) {
         var _this = _super.call(this) || this;
         _this.opts = opts;
+        _this.m_eventManager = new event_1.EventManager();
         _this.enter = function () {
             _this.loader.load(_this.onLoadComplete);
         };
@@ -31,7 +32,7 @@ var SetupState = (function (_super) {
             var board_config = resources[path].data;
             board.init(board_config);
             renderer.initializeScene(board);
-            _this.m_fsm.enterState(GameController_1.GameState.PLAY);
+            _this.m_eventManager.emit("COMPLETE", null);
         };
         _this.update = function (deltaTime) {
         };
@@ -42,6 +43,9 @@ var SetupState = (function (_super) {
         loader.add(opts.board_data_path);
         return _this;
     }
+    SetupState.prototype.onComplete = function (cb) {
+        this.m_eventManager.add("COMPLETE", cb);
+    };
     return SetupState;
 }(FSM_1.FSMState));
 exports.SetupState = SetupState;

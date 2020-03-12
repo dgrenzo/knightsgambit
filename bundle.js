@@ -14,8 +14,21 @@ function getAssetURL(asset) {
 }
 exports.getAssetURL = getAssetURL;
 
-},{"./types":16}],2:[function(require,module,exports){
+},{"./types":19}],2:[function(require,module,exports){
 "use strict";
+var __extends = (this && this.__extends) || (function () {
+    var extendStatics = function (d, b) {
+        extendStatics = Object.setPrototypeOf ||
+            ({ __proto__: [] } instanceof Array && function (d, b) { d.__proto__ = b; }) ||
+            function (d, b) { for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p]; };
+        return extendStatics(d, b);
+    };
+    return function (d, b) {
+        extendStatics(d, b);
+        function __() { this.constructor = d; }
+        d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
+    };
+})();
 Object.defineProperty(exports, "__esModule", { value: true });
 var FSMState = (function () {
     function FSMState() {
@@ -26,6 +39,18 @@ var FSMState = (function () {
     return FSMState;
 }());
 exports.FSMState = FSMState;
+var FSMStateSimple = (function (_super) {
+    __extends(FSMStateSimple, _super);
+    function FSMStateSimple(callbacks) {
+        var _this = _super.call(this) || this;
+        _this.enter = callbacks.enter ? callbacks.enter : function () { };
+        _this.exit = callbacks.exit ? callbacks.exit : function () { };
+        _this.update = callbacks.update ? callbacks.update : function (deltaTime) { };
+        return _this;
+    }
+    return FSMStateSimple;
+}(FSMState));
+exports.FSMStateSimple = FSMStateSimple;
 var FSM = (function () {
     function FSM() {
         var _this = this;
@@ -63,6 +88,265 @@ exports.FSM = FSM;
 },{}],3:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+var Signal = (function () {
+    function Signal() {
+        this.listener_root = null;
+    }
+    Signal.prototype.emit = function (data) {
+        var listener = this.listener_root;
+        while (listener) {
+            listener.fn(data);
+            listener = listener.next;
+        }
+    };
+    Signal.prototype.add = function (cb) {
+        var current_root = this.listener_root;
+        this.listener_root = {
+            fn: cb,
+            next: current_root,
+        };
+    };
+    Signal.prototype.remove = function (cb) {
+        if (cb === this.listener_root.fn) {
+            this.listener_root = this.listener_root.next;
+            return;
+        }
+        var current = this.listener_root;
+        var prev = null;
+        while (current) {
+            if (current.fn === cb) {
+                if (prev) {
+                    prev.next = current.next;
+                }
+                return;
+            }
+            prev = current;
+            current = current.next;
+        }
+    };
+    return Signal;
+}());
+exports.Signal = Signal;
+var EventManager = (function () {
+    function EventManager() {
+        this.m_signalMap = new Map();
+    }
+    EventManager.prototype.emit = function (signal_type, data) {
+        if (!this.m_signalMap.has(signal_type)) {
+            return;
+        }
+        else {
+            this.m_signalMap.get(signal_type).emit(data);
+        }
+    };
+    EventManager.prototype.createSignal = function (signal_name) {
+        this.m_signalMap.set(signal_name, new Signal());
+    };
+    EventManager.prototype.add = function (signal_name, cb) {
+        if (!this.m_signalMap.get(signal_name)) {
+            this.createSignal(signal_name);
+        }
+        this.m_signalMap.get(signal_name).add(cb);
+    };
+    EventManager.prototype.remove = function (signal_name, cb) {
+        if (!this.m_signalMap.get(signal_name)) {
+            return;
+        }
+        else {
+            this.m_signalMap.get(signal_name).remove(cb);
+        }
+    };
+    return EventManager;
+}());
+exports.EventManager = EventManager;
+
+},{}],4:[function(require,module,exports){
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+var SceneRendererIsometric_1 = require("./scene/isometric/SceneRendererIsometric");
+var RenderMode;
+(function (RenderMode) {
+    RenderMode[RenderMode["ISOMETRIC"] = 0] = "ISOMETRIC";
+})(RenderMode = exports.RenderMode || (exports.RenderMode = {}));
+function CreateRenderer(config) {
+    switch (config.mode) {
+        case RenderMode.ISOMETRIC: return new SceneRendererIsometric_1.SceneRendererIsometric(config.pixi_app);
+        default: return new SceneRendererIsometric_1.SceneRendererIsometric(config.pixi_app);
+    }
+}
+exports.CreateRenderer = CreateRenderer;
+
+},{"./scene/isometric/SceneRendererIsometric":7}],5:[function(require,module,exports){
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+var PIXI = require("pixi.js");
+var assets_1 = require("../../../assets");
+var REntity = (function () {
+    function REntity(info) {
+        var _this = this;
+        this.offsetY = 0;
+        this.setFilter = function (filter) {
+            if (filter.highlight) {
+                _this.sprite.alpha = 0.5;
+            }
+            else {
+                _this.sprite.alpha = 1;
+            }
+        };
+        this.m_sprite = new PIXI.Sprite();
+        this.m_sprite.interactive = this.m_sprite.buttonMode = true;
+        this.id = info.id;
+        var asset = info.asset;
+        var image = PIXI.Sprite.from(assets_1.getAssetURL(asset.name));
+        image.position.x = asset.offset_x ? asset.offset_x : 0;
+        image.position.y = asset.offset_y ? asset.offset_y : 0;
+        this.m_sprite.addChild(image);
+    }
+    Object.defineProperty(REntity.prototype, "sprite", {
+        get: function () {
+            return this.m_sprite;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    REntity.prototype.setPosition = function (x, y) {
+        this.m_sprite.position.set(x, y + this.offsetY);
+    };
+    return REntity;
+}());
+exports.REntity = REntity;
+
+},{"../../../assets":1,"pixi.js":61}],6:[function(require,module,exports){
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+var PIXI = require("pixi.js");
+var REntity_1 = require("./REntity");
+var event_1 = require("../../listener/event");
+var SceneRenderer = (function () {
+    function SceneRenderer(m_pixi) {
+        var _this = this;
+        this.m_pixi = m_pixi;
+        this.m_eventManager = new event_1.EventManager();
+        this.initializeScene = function (scene) {
+            _this.m_renderables = new Map();
+            _this.m_container.removeChildren();
+            scene.getElements().forEach(function (element) {
+                var renderable = _this.addEntity(element);
+                renderable.sprite.on('pointerdown', function () {
+                    _this.m_eventManager.emit("ENTITY_CLICKED", { id: renderable.id });
+                });
+            });
+            _this.renderScene(scene);
+        };
+        this.on = function (event_name, cb) {
+            _this.m_eventManager.add(event_name, cb);
+        };
+        this.off = function (event_name, cb) {
+            _this.m_eventManager.remove(event_name, cb);
+        };
+        this.renderScene = function (scene) {
+            scene.getElements().forEach(function (element) {
+                _this.positionElement(_this.m_renderables.get(element.id), element.x, element.y);
+            });
+            _this.sortElements(scene.getElements());
+        };
+        this.removeEntity = function (entity) {
+            var renderable = _this.m_renderables.get(entity.id);
+            if (renderable) {
+                _this.m_container.removeChild(renderable.sprite);
+                _this.m_renderables.delete(entity.id);
+            }
+            return renderable;
+        };
+        this.addEntity = function (entity) {
+            _this.m_renderables.set(entity.id, new REntity_1.REntity(entity.GetInfo()));
+            return _this.m_renderables.get(entity.id);
+        };
+        this.getRenderable = function (id) {
+            return _this.m_renderables.get(id);
+        };
+        this.m_container = new PIXI.Container();
+    }
+    Object.defineProperty(SceneRenderer.prototype, "stage", {
+        get: function () {
+            return this.m_container;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    return SceneRenderer;
+}());
+exports.SceneRenderer = SceneRenderer;
+
+},{"../../listener/event":3,"./REntity":5,"pixi.js":61}],7:[function(require,module,exports){
+"use strict";
+var __extends = (this && this.__extends) || (function () {
+    var extendStatics = function (d, b) {
+        extendStatics = Object.setPrototypeOf ||
+            ({ __proto__: [] } instanceof Array && function (d, b) { d.__proto__ = b; }) ||
+            function (d, b) { for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p]; };
+        return extendStatics(d, b);
+    };
+    return function (d, b) {
+        extendStatics(d, b);
+        function __() { this.constructor = d; }
+        d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
+    };
+})();
+Object.defineProperty(exports, "__esModule", { value: true });
+var SceneRenderer_1 = require("../SceneRenderer");
+var TILE_WIDTH = 64;
+var TILE_HEIGHT = 32;
+var SceneRendererIsometric = (function (_super) {
+    __extends(SceneRendererIsometric, _super);
+    function SceneRendererIsometric(pixi) {
+        var _this = _super.call(this, pixi) || this;
+        _this.TILE_WIDTH = TILE_WIDTH;
+        _this.TILE_HEIGHT = TILE_HEIGHT;
+        _this.HALF_TILE_WIDTH = TILE_WIDTH / 2;
+        _this.HALF_TILE_HEIGHT = TILE_HEIGHT / 2;
+        _this.screenToTilePos = function (global) {
+            var point = _this.m_container.toLocal(global);
+            var game_x = Math.round(point.y / _this.TILE_HEIGHT + point.x / _this.TILE_WIDTH) - 1;
+            var game_y = Math.round(point.y / _this.TILE_HEIGHT - point.x / _this.TILE_WIDTH);
+            console.log(game_x + ' ' + game_y);
+            return {
+                x: game_x,
+                y: game_y
+            };
+        };
+        _this.positionElement = function (element, x, y) {
+            element.setPosition((x - y) * _this.HALF_TILE_WIDTH, (x + y) * _this.HALF_TILE_HEIGHT);
+        };
+        _this.sortElements = function (elements) {
+            elements
+                .sort(function (a, b) {
+                return _this.getElementDepth(a) - _this.getElementDepth(b);
+            })
+                .forEach(function (e) {
+                _this.m_container.addChild(_this.m_renderables.get(e.id).sprite);
+            });
+        };
+        _this.getElementDepth = function (element) {
+            return (element.x + element.y) + element.GetInfo().depth;
+        };
+        _this.m_container.position.set(500, 100);
+        _this.m_container.scale.set(2);
+        pixi.renderer.plugins.interaction.on('pointermove', function (evt) {
+            _this.m_eventManager.emit("POINTER_MOVE", _this.screenToTilePos(evt.data.global));
+        });
+        pixi.renderer.plugins.interaction.on('pointerdown', function (evt) {
+            _this.m_eventManager.emit("TILE_CLICKED", _this.screenToTilePos(evt.data.global));
+        });
+        return _this;
+    }
+    return SceneRendererIsometric;
+}(SceneRenderer_1.SceneRenderer));
+exports.SceneRendererIsometric = SceneRendererIsometric;
+
+},{"../SceneRenderer":6}],8:[function(require,module,exports){
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
 var id_ticker = 0;
 var Entity = (function () {
     function Entity(x, y) {
@@ -87,38 +371,52 @@ var Entity = (function () {
 }());
 exports.Entity = Entity;
 
-},{}],4:[function(require,module,exports){
+},{}],9:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 var Scene = (function () {
     function Scene() {
+        var _this = this;
+        this.getElements = function () {
+            return _this.m_elements;
+        };
+        this.getElement = function (id) {
+            for (var i = 0; i < _this.m_elements.length; i++) {
+                if (_this.m_elements[i].id === id) {
+                    return _this.m_elements[i];
+                }
+            }
+            return null;
+        };
+        this.removeElement = function (id) {
+            for (var i = 0; i < _this.m_elements.length; i++) {
+                if (_this.m_elements[i].id === id) {
+                    _this.m_elements.splice(i, 1);
+                    return _this.m_elements[i];
+                }
+            }
+            return null;
+        };
     }
     Scene.prototype.addElement = function (element) {
         this.m_elements.push(element);
-    };
-    Scene.prototype.getElements = function () {
-        return this.m_elements;
-    };
-    Scene.prototype.getElement = function (id) {
-        for (var i = 0; i < this.m_elements.length; i++) {
-            if (this.m_elements[i].id === id) {
-                return this.m_elements[i];
-            }
-        }
-        return null;
     };
     return Scene;
 }());
 exports.Scene = Scene;
 
-},{}],5:[function(require,module,exports){
+},{}],10:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 var ChessBoard_1 = require("./board/ChessBoard");
-var render_1 = require("../render/render");
+var render_1 = require("../engine/render/render");
 var FSM_1 = require("../engine/FSM");
-var SetupState_1 = require("./states/SetupState");
-var PlayState_1 = require("./states/PlayState");
+var SetupState_1 = require("./states/setup/SetupState");
+var PlayState_1 = require("./states/play/PlayState");
+var event_1 = require("../engine/listener/event");
+var ChessPiece_1 = require("./board/pieces/ChessPiece");
+var TileHighlighter_1 = require("./extras/TileHighlighter");
+var Tile_1 = require("./board/Tile");
 var GameState;
 (function (GameState) {
     GameState[GameState["SETUP"] = 0] = "SETUP";
@@ -126,25 +424,85 @@ var GameState;
 })(GameState = exports.GameState || (exports.GameState = {}));
 var GameController = (function () {
     function GameController(m_config) {
+        var _this = this;
         this.m_config = m_config;
+        this.m_eventManager = new event_1.EventManager();
+        this.highlightTiles = function (tiles, highlight) {
+            tiles.forEach(function (tile) {
+                _this.m_renderer.getRenderable(tile.id).setFilter({ highlight: highlight });
+            });
+        };
+        this.getPieceAt = function (pos) {
+            var elements = _this.m_board.getElementsAt(pos);
+            var piece = null;
+            elements.forEach(function (entity) {
+                if (!piece && entity instanceof ChessPiece_1.ChessPiece) {
+                    piece = entity;
+                }
+            });
+            return piece;
+        };
+        this.removePiece = function (piece) {
+            if (!piece) {
+                return;
+            }
+            _this.m_board.removeElement(piece.id);
+            _this.m_renderer.removeEntity(piece);
+        };
+        this.getTileAt = function (pos) {
+            var elements = _this.m_board.getElementsAt(pos);
+            var tile = null;
+            elements.forEach(function (entity) {
+                if (!tile && entity instanceof Tile_1.Tile) {
+                    tile = entity;
+                }
+            });
+            return tile;
+        };
+        this.on = function (event_name, cb) {
+            _this.m_eventManager.add(event_name, cb);
+        };
+        this.off = function (event_name, cb) {
+            _this.m_eventManager.remove(event_name, cb);
+        };
         this.m_fsm = new FSM_1.FSM();
         m_config.pixi_app.ticker.add(this.m_fsm.update);
-        this.m_board = new ChessBoard_1.ChessBoard(m_config);
+        this.m_board = new ChessBoard_1.ChessBoard();
         this.m_renderer = render_1.CreateRenderer(m_config);
-        this.m_fsm.registerState(GameState.SETUP, new SetupState_1.SetupState({
+        this.m_renderer.on("TILE_CLICKED", function (data) {
+            _this.m_eventManager.emit("TILE_CLICKED", data);
+        });
+        this.m_renderer.on("ENTITY_CLICKED", function (data) {
+            var target = _this.m_board.getElement(data.id);
+            if (target) {
+                if (target instanceof ChessPiece_1.ChessPiece) {
+                    _this.m_eventManager.emit("PIECE_CLICKED", { piece: target });
+                }
+            }
+        });
+        var setupState = new SetupState_1.SetupState({
             board: this.m_board,
             renderer: this.m_renderer,
             board_data_path: './assets/data/levels/001.json',
-        }));
-        this.m_fsm.registerState(GameState.PLAY, new PlayState_1.PlayState(this.m_board, this.m_renderer));
-        m_config.pixi_app.stage.addChild(this.m_renderer.stage);
+        });
+        this.m_fsm.registerState(GameState.SETUP, setupState);
+        this.m_fsm.registerState(GameState.PLAY, new PlayState_1.PlayState(this));
+        setupState.onComplete(function () {
+            m_config.pixi_app.stage.addChild(_this.m_renderer.stage);
+            var highligher = new TileHighlighter_1.default(_this.m_renderer, _this.m_board);
+            m_config.pixi_app.ticker.add(highligher.update);
+            m_config.pixi_app.ticker.add(function () {
+                _this.m_renderer.renderScene(_this.m_board);
+            });
+            _this.m_fsm.enterState(GameState.PLAY);
+        });
         this.m_fsm.enterState(GameState.SETUP);
     }
     return GameController;
 }());
 exports.GameController = GameController;
 
-},{"../engine/FSM":2,"../render/render":12,"./board/ChessBoard":6,"./states/PlayState":9,"./states/SetupState":10}],6:[function(require,module,exports){
+},{"../engine/FSM":2,"../engine/listener/event":3,"../engine/render/render":4,"./board/ChessBoard":11,"./board/Tile":12,"./board/pieces/ChessPiece":13,"./extras/TileHighlighter":14,"./states/play/PlayState":15,"./states/setup/SetupState":17}],11:[function(require,module,exports){
 "use strict";
 var __extends = (this && this.__extends) || (function () {
     var extendStatics = function (d, b) {
@@ -161,18 +519,12 @@ var __extends = (this && this.__extends) || (function () {
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
 var Tile_1 = require("./Tile");
-var ChessPiece_1 = require("../pieces/ChessPiece");
+var ChessPiece_1 = require("./pieces/ChessPiece");
 var Scene_1 = require("../../engine/scene/Scene");
-var COLOR = {
-    BLACK: 0x393939,
-    WHITE: 0xF0F0F0,
-};
 var ChessBoard = (function (_super) {
     __extends(ChessBoard, _super);
-    function ChessBoard(config) {
-        var _this = _super.call(this) || this;
-        _this.config = config;
-        return _this;
+    function ChessBoard() {
+        return _super.call(this) || this;
     }
     ChessBoard.prototype.init = function (board_config) {
         var _this = this;
@@ -184,6 +536,18 @@ var ChessBoard = (function (_super) {
             _this.addElement(new Tile_1.Tile(pos[0], pos[1]));
         });
     };
+    ChessBoard.prototype.getElementsAt = function (pos) {
+        if (!pos) {
+            return [];
+        }
+        var elements = [];
+        this.m_elements.forEach(function (ent) {
+            if (ent.x === pos.x && ent.y === pos.y) {
+                elements.push(ent);
+            }
+        });
+        return elements;
+    };
     return ChessBoard;
 }(Scene_1.Scene));
 exports.ChessBoard = ChessBoard;
@@ -192,7 +556,7 @@ function GetTileColor(x, y) {
 }
 exports.GetTileColor = GetTileColor;
 
-},{"../../engine/scene/Scene":4,"../pieces/ChessPiece":8,"./Tile":7}],7:[function(require,module,exports){
+},{"../../engine/scene/Scene":9,"./Tile":12,"./pieces/ChessPiece":13}],12:[function(require,module,exports){
 "use strict";
 var __extends = (this && this.__extends) || (function () {
     var extendStatics = function (d, b) {
@@ -219,8 +583,8 @@ var Tile = (function (_super) {
         _this.getAssetInfo = function () {
             return {
                 name: assets_1.factionToString(ChessBoard_1.GetTileColor(_this.x, _this.y)) + '_tile.png',
-                offset_x: -32,
-                offset_y: -18,
+                offset_x: 0,
+                offset_y: 0,
             };
         };
         return _this;
@@ -229,7 +593,7 @@ var Tile = (function (_super) {
 }(Entity_1.Entity));
 exports.Tile = Tile;
 
-},{"../../assets":1,"../../engine/scene/Entity":3,"./ChessBoard":6}],8:[function(require,module,exports){
+},{"../../assets":1,"../../engine/scene/Entity":8,"./ChessBoard":11}],13:[function(require,module,exports){
 "use strict";
 var __extends = (this && this.__extends) || (function () {
     var extendStatics = function (d, b) {
@@ -245,20 +609,189 @@ var __extends = (this && this.__extends) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
-var types_1 = require("../../types");
-var Entity_1 = require("../../engine/scene/Entity");
-var assets_1 = require("../../assets");
+var types_1 = require("../../../types");
+var Entity_1 = require("../../../engine/scene/Entity");
+var assets_1 = require("../../../assets");
 var ChessPiece = (function (_super) {
     __extends(ChessPiece, _super);
     function ChessPiece(info) {
         var _this = _super.call(this, info.pos[0], info.pos[1]) || this;
         _this.info = info;
+        _this.getFaction = function () {
+            return _this.info.faction;
+        };
         _this.getAssetInfo = function () {
             return {
                 name: assets_1.factionToString(_this.info.faction) + '_' + pieceToString(_this.info.type) + '.png',
-                offset_x: -16,
-                offset_y: -90,
+                offset_x: 16,
+                offset_y: -72,
             };
+        };
+        _this.getMoves = function () {
+            switch (_this.info.type) {
+                case types_1.PIECE.PAWN:
+                    return [
+                        {
+                            x: 0,
+                            y: _this.getFaction() === types_1.FACTION.BLACK ? 1 : -1,
+                        }
+                    ];
+                case types_1.PIECE.KNIGHT:
+                    return [
+                        {
+                            x: 1,
+                            y: 2,
+                        },
+                        {
+                            x: -1,
+                            y: 2
+                        },
+                        {
+                            x: 2,
+                            y: 1,
+                        },
+                        {
+                            x: -2,
+                            y: 1
+                        },
+                        {
+                            x: 1,
+                            y: -2,
+                        },
+                        {
+                            x: -1,
+                            y: -2
+                        },
+                        {
+                            x: 2,
+                            y: -1,
+                        },
+                        {
+                            x: -2,
+                            y: -1
+                        }
+                    ];
+                case types_1.PIECE.ROOK: return [
+                    {
+                        x: 1,
+                        y: 0,
+                        repeating: true,
+                    },
+                    {
+                        x: -1,
+                        y: 0,
+                        repeating: true,
+                    },
+                    {
+                        x: 0,
+                        y: 1,
+                        repeating: true,
+                    },
+                    {
+                        x: 0,
+                        y: -1,
+                        repeating: true,
+                    },
+                ];
+                case types_1.PIECE.BISHOP: return [
+                    {
+                        x: 1,
+                        y: 1,
+                        repeating: true,
+                    },
+                    {
+                        x: -1,
+                        y: -1,
+                        repeating: true,
+                    },
+                    {
+                        x: -1,
+                        y: 1,
+                        repeating: true,
+                    },
+                    {
+                        x: 1,
+                        y: -1,
+                        repeating: true,
+                    },
+                ];
+                case types_1.PIECE.QUEEN: return [
+                    {
+                        x: 1,
+                        y: 1,
+                        repeating: true,
+                    },
+                    {
+                        x: -1,
+                        y: -1,
+                        repeating: true,
+                    },
+                    {
+                        x: -1,
+                        y: 1,
+                        repeating: true,
+                    },
+                    {
+                        x: 1,
+                        y: -1,
+                        repeating: true,
+                    },
+                    {
+                        x: 1,
+                        y: 0,
+                        repeating: true,
+                    },
+                    {
+                        x: -1,
+                        y: 0,
+                        repeating: true,
+                    },
+                    {
+                        x: 0,
+                        y: 1,
+                        repeating: true,
+                    },
+                    {
+                        x: 0,
+                        y: -1,
+                        repeating: true,
+                    },
+                ];
+                case types_1.PIECE.KING: return [
+                    {
+                        x: 1,
+                        y: 1,
+                    },
+                    {
+                        x: -1,
+                        y: -1,
+                    },
+                    {
+                        x: -1,
+                        y: 1,
+                    },
+                    {
+                        x: 1,
+                        y: -1,
+                    },
+                    {
+                        x: 1,
+                        y: 0,
+                    },
+                    {
+                        x: -1,
+                        y: 0,
+                    },
+                    {
+                        x: 0,
+                        y: 1,
+                    },
+                    {
+                        x: 0,
+                        y: -1,
+                    }
+                ];
+            }
         };
         return _this;
     }
@@ -276,7 +809,42 @@ function pieceToString(piece) {
     }
 }
 
-},{"../../assets":1,"../../engine/scene/Entity":3,"../../types":16}],9:[function(require,module,exports){
+},{"../../../assets":1,"../../../engine/scene/Entity":8,"../../../types":19}],14:[function(require,module,exports){
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+var TileHighlighter = (function () {
+    function TileHighlighter(m_renderer, m_board) {
+        var _this = this;
+        this.m_renderer = m_renderer;
+        this.m_board = m_board;
+        this.onPointerMove = function (data) {
+            _this.m_current_pos = {
+                x: data.x,
+                y: data.y,
+            };
+        };
+        this.update = function () {
+            var targets = _this.m_board.getElementsAt(_this.m_last_pos);
+            if (targets.length > 0) {
+                targets.forEach(function (entity) {
+                    _this.m_renderer.getRenderable(entity.id).offsetY = 0;
+                });
+            }
+            targets = _this.m_board.getElementsAt(_this.m_current_pos);
+            if (targets.length > 0) {
+                targets.forEach(function (entity) {
+                    _this.m_renderer.getRenderable(entity.id).offsetY = -5;
+                });
+            }
+            _this.m_last_pos = _this.m_current_pos;
+        };
+        this.m_renderer.on('POINTER_MOVE', this.onPointerMove);
+    }
+    return TileHighlighter;
+}());
+exports.default = TileHighlighter;
+
+},{}],15:[function(require,module,exports){
 "use strict";
 var __extends = (this && this.__extends) || (function () {
     var extendStatics = function (d, b) {
@@ -292,36 +860,134 @@ var __extends = (this && this.__extends) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
-var FSM_1 = require("../../engine/FSM");
-var ChessPiece_1 = require("../pieces/ChessPiece");
+var FSM_1 = require("../../../engine/FSM");
+var TurnAction_1 = require("./turn/TurnAction");
 var PlayState = (function (_super) {
     __extends(PlayState, _super);
-    function PlayState(m_board, m_renderer) {
+    function PlayState(gameController) {
         var _this = _super.call(this) || this;
-        _this.m_board = m_board;
-        _this.m_renderer = m_renderer;
+        _this.gameController = gameController;
         _this.enter = function () {
-            _this.m_renderer.registerClickListener(function (id) {
-                var target = _this.m_board.getElement(id);
-                if (target) {
-                    if (target instanceof ChessPiece_1.ChessPiece) {
-                        target.y--;
-                    }
-                }
-            });
         };
         _this.update = function (deltaTime) {
-            _this.m_renderer.renderScene(_this.m_board);
         };
         _this.exit = function () {
         };
+        var current_turn = new TurnAction_1.TurnAction(gameController);
         return _this;
     }
     return PlayState;
 }(FSM_1.FSMState));
 exports.PlayState = PlayState;
 
-},{"../../engine/FSM":2,"../pieces/ChessPiece":8}],10:[function(require,module,exports){
+},{"../../../engine/FSM":2,"./turn/TurnAction":16}],16:[function(require,module,exports){
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+var FSM_1 = require("../../../../engine/FSM");
+var TurnState;
+(function (TurnState) {
+    TurnState[TurnState["WAITING"] = 0] = "WAITING";
+    TurnState[TurnState["SELECTED"] = 1] = "SELECTED";
+    TurnState[TurnState["ACTING"] = 2] = "ACTING";
+    TurnState[TurnState["COMPLETE"] = 3] = "COMPLETE";
+})(TurnState || (TurnState = {}));
+var TurnAction = (function () {
+    function TurnAction(m_gameController) {
+        var _this = this;
+        this.m_gameController = m_gameController;
+        this.m_fsm = new FSM_1.FSM();
+        this.activatePiece = function (data) {
+            var piece = _this.m_gameController.getPieceAt(data);
+            if (!piece) {
+                return;
+            }
+            _this.m_activePiece = piece;
+            var moves = _this.m_activePiece.getMoves();
+            _this.m_validMoves = [];
+            moves.forEach(function (move) {
+                var target = {
+                    x: _this.m_activePiece.x + move.x,
+                    y: _this.m_activePiece.y + move.y,
+                };
+                var repeat = move.repeating;
+                do {
+                    var tile = _this.m_gameController.getTileAt(target);
+                    if (tile) {
+                        var target_piece = _this.m_gameController.getPieceAt(target);
+                        if (target_piece) {
+                            repeat = false;
+                            if (target_piece.getFaction() != piece.getFaction()) {
+                                _this.m_validMoves.push({
+                                    x: target.x,
+                                    y: target.y,
+                                    id: tile.id,
+                                });
+                            }
+                        }
+                        else {
+                            _this.m_validMoves.push({
+                                x: target.x,
+                                y: target.y,
+                                id: tile.id,
+                            });
+                        }
+                        target.x += move.x;
+                        target.y += move.y;
+                    }
+                    else {
+                        repeat = false;
+                    }
+                } while (repeat);
+            });
+            Promise.resolve().then(function () {
+                _this.m_fsm.enterState(TurnState.SELECTED);
+            });
+        };
+        this.onTileClicked = function (data) {
+            if (_this.m_gameController.getPieceAt(data) === _this.m_activePiece) {
+                _this.m_fsm.enterState(TurnState.WAITING);
+                return;
+            }
+            _this.m_validMoves.forEach(function (move) {
+                if (move.x === data.x && move.y === data.y) {
+                    _this.m_gameController.removePiece(_this.m_gameController.getPieceAt(move));
+                    _this.m_activePiece.x = data.x;
+                    _this.m_activePiece.y = data.y;
+                    _this.m_fsm.enterState(TurnState.WAITING);
+                }
+            });
+        };
+        this.m_fsm.registerState(TurnState.WAITING, new FSM_1.FSMStateSimple({
+            enter: function () {
+                _this.m_gameController.on("TILE_CLICKED", _this.activatePiece);
+            },
+            exit: function () {
+                _this.m_gameController.off("TILE_CLICKED", _this.activatePiece);
+            }
+        }));
+        this.m_fsm.registerState(TurnState.SELECTED, new FSM_1.FSMStateSimple({
+            enter: function () {
+                _this.m_gameController.highlightTiles(_this.m_validMoves, true);
+                _this.m_gameController.on("TILE_CLICKED", _this.onTileClicked);
+            },
+            exit: function () {
+                _this.m_gameController.highlightTiles(_this.m_validMoves, false);
+                _this.m_gameController.off("TILE_CLICKED", _this.onTileClicked);
+            }
+        }));
+        this.m_fsm.registerState(TurnState.COMPLETE, new FSM_1.FSMStateSimple({
+            enter: function () {
+            },
+            exit: function () {
+            }
+        }));
+        this.m_fsm.enterState(TurnState.WAITING);
+    }
+    return TurnAction;
+}());
+exports.TurnAction = TurnAction;
+
+},{"../../../../engine/FSM":2}],17:[function(require,module,exports){
 "use strict";
 var __extends = (this && this.__extends) || (function () {
     var extendStatics = function (d, b) {
@@ -338,13 +1004,14 @@ var __extends = (this && this.__extends) || (function () {
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
 var PIXI = require("pixi.js");
-var FSM_1 = require("../../engine/FSM");
-var GameController_1 = require("../GameController");
+var FSM_1 = require("../../../engine/FSM");
+var event_1 = require("../../../engine/listener/event");
 var SetupState = (function (_super) {
     __extends(SetupState, _super);
     function SetupState(opts) {
         var _this = _super.call(this) || this;
         _this.opts = opts;
+        _this.m_eventManager = new event_1.EventManager();
         _this.enter = function () {
             _this.loader.load(_this.onLoadComplete);
         };
@@ -355,7 +1022,7 @@ var SetupState = (function (_super) {
             var board_config = resources[path].data;
             board.init(board_config);
             renderer.initializeScene(board);
-            _this.m_fsm.enterState(GameController_1.GameState.PLAY);
+            _this.m_eventManager.emit("COMPLETE", null);
         };
         _this.update = function (deltaTime) {
         };
@@ -366,16 +1033,19 @@ var SetupState = (function (_super) {
         loader.add(opts.board_data_path);
         return _this;
     }
+    SetupState.prototype.onComplete = function (cb) {
+        this.m_eventManager.add("COMPLETE", cb);
+    };
     return SetupState;
 }(FSM_1.FSMState));
 exports.SetupState = SetupState;
 
-},{"../../engine/FSM":2,"../GameController":5,"pixi.js":58}],11:[function(require,module,exports){
+},{"../../../engine/FSM":2,"../../../engine/listener/event":3,"pixi.js":61}],18:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 var PIXI = require("pixi.js");
 var GameController_1 = require("./game/GameController");
-var render_1 = require("./render/render");
+var render_1 = require("./engine/render/render");
 exports.DEBUG = false;
 PIXI.settings.SCALE_MODE = PIXI.SCALE_MODES.NEAREST;
 var pixi_app = new PIXI.Application({
@@ -390,162 +1060,7 @@ window.addEventListener('resize', WindowResize);
 Promise.resolve().then(WindowResize);
 var game = new GameController_1.GameController({ pixi_app: pixi_app, mode: render_1.RenderMode.ISOMETRIC });
 
-},{"./game/GameController":5,"./render/render":12,"pixi.js":58}],12:[function(require,module,exports){
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-var SceneRendererIsometric_1 = require("./scene/isometric/SceneRendererIsometric");
-var RenderMode;
-(function (RenderMode) {
-    RenderMode[RenderMode["ISOMETRIC"] = 0] = "ISOMETRIC";
-})(RenderMode = exports.RenderMode || (exports.RenderMode = {}));
-function CreateRenderer(config) {
-    switch (config.mode) {
-        case RenderMode.ISOMETRIC: return new SceneRendererIsometric_1.SceneRendererIsometric();
-        default: return new SceneRendererIsometric_1.SceneRendererIsometric();
-    }
-}
-exports.CreateRenderer = CreateRenderer;
-
-},{"./scene/isometric/SceneRendererIsometric":15}],13:[function(require,module,exports){
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-var PIXI = require("pixi.js");
-var assets_1 = require("../../assets");
-var REntity = (function () {
-    function REntity(info) {
-        this.m_sprite = new PIXI.Sprite();
-        this.m_sprite.interactive = this.m_sprite.buttonMode = true;
-        this.id = info.id;
-        var asset = info.asset;
-        var image = PIXI.Sprite.from(assets_1.getAssetURL(asset.name));
-        image.position.x = asset.offset_x ? asset.offset_x : 0;
-        image.position.y = asset.offset_y ? asset.offset_y : 0;
-        this.m_sprite.addChild(image);
-    }
-    Object.defineProperty(REntity.prototype, "sprite", {
-        get: function () {
-            return this.m_sprite;
-        },
-        enumerable: true,
-        configurable: true
-    });
-    REntity.prototype.setPosition = function (x, y) {
-        this.m_sprite.position.set(x, y);
-    };
-    return REntity;
-}());
-exports.REntity = REntity;
-
-},{"../../assets":1,"pixi.js":58}],14:[function(require,module,exports){
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-var PIXI = require("pixi.js");
-var REntity_1 = require("./REntity");
-var SceneRenderer = (function () {
-    function SceneRenderer() {
-        var _this = this;
-        this.s_onEntityClicked = [];
-        this.registerClickListener = function (listener) {
-            _this.s_onEntityClicked.push(listener);
-        };
-        this.initializeScene = function (scene) {
-            _this.m_renderables = new Map();
-            _this.m_container.removeChildren();
-            scene.getElements().forEach(function (element) {
-                var renderable = _this.addEntity(element);
-                renderable.sprite.on('pointerdown', function () {
-                    _this.onClicked(renderable.id);
-                });
-            });
-        };
-        this.removeEntity = function (entity) {
-            var renderable = _this.m_renderables.get(entity.id);
-            if (renderable) {
-                _this.m_renderables.delete(entity.id);
-            }
-            return renderable;
-        };
-        this.addEntity = function (entity) {
-            _this.m_renderables.set(entity.id, new REntity_1.REntity(entity.GetInfo()));
-            return _this.m_renderables.get(entity.id);
-        };
-        this.onClicked = function (id) {
-            _this.s_onEntityClicked.forEach(function (fn) {
-                fn(id);
-            });
-        };
-        this.m_container = new PIXI.Container();
-        this.m_container.on('pointerdown', function () {
-        });
-    }
-    Object.defineProperty(SceneRenderer.prototype, "stage", {
-        get: function () {
-            return this.m_container;
-        },
-        enumerable: true,
-        configurable: true
-    });
-    SceneRenderer.prototype.renderScene = function (scene) {
-        var _this = this;
-        scene.getElements().forEach(function (element) {
-            _this.positionElement(_this.m_renderables.get(element.id), element.x, element.y);
-        });
-        this.sortElements(scene.getElements());
-    };
-    return SceneRenderer;
-}());
-exports.SceneRenderer = SceneRenderer;
-
-},{"./REntity":13,"pixi.js":58}],15:[function(require,module,exports){
-"use strict";
-var __extends = (this && this.__extends) || (function () {
-    var extendStatics = function (d, b) {
-        extendStatics = Object.setPrototypeOf ||
-            ({ __proto__: [] } instanceof Array && function (d, b) { d.__proto__ = b; }) ||
-            function (d, b) { for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p]; };
-        return extendStatics(d, b);
-    };
-    return function (d, b) {
-        extendStatics(d, b);
-        function __() { this.constructor = d; }
-        d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
-    };
-})();
-Object.defineProperty(exports, "__esModule", { value: true });
-var SceneRenderer_1 = require("../SceneRenderer");
-var TILE_WIDTH = 64;
-var TILE_HEIGHT = 32;
-var SceneRendererIsometric = (function (_super) {
-    __extends(SceneRendererIsometric, _super);
-    function SceneRendererIsometric() {
-        var _this = _super.call(this) || this;
-        _this.TILE_WIDTH = TILE_WIDTH;
-        _this.TILE_HEIGHT = TILE_HEIGHT;
-        _this.HALF_TILE_WIDTH = TILE_WIDTH / 2;
-        _this.HALF_TILE_HEIGHT = TILE_HEIGHT / 2;
-        _this.positionElement = function (element, x, y) {
-            element.setPosition((x - y) * _this.HALF_TILE_WIDTH, (x + y) * _this.HALF_TILE_HEIGHT);
-        };
-        _this.sortElements = function (elements) {
-            elements
-                .sort(function (a, b) {
-                return _this.getElementDepth(a) - _this.getElementDepth(b);
-            })
-                .forEach(function (e) {
-                _this.m_container.addChild(_this.m_renderables.get(e.id).sprite);
-            });
-        };
-        _this.getElementDepth = function (element) {
-            return (element.x + element.y) + element.GetInfo().depth;
-        };
-        _this.m_container.position.set(300, 100);
-        return _this;
-    }
-    return SceneRendererIsometric;
-}(SceneRenderer_1.SceneRenderer));
-exports.SceneRendererIsometric = SceneRendererIsometric;
-
-},{"../SceneRenderer":14}],16:[function(require,module,exports){
+},{"./engine/render/render":4,"./game/GameController":10,"pixi.js":61}],19:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 var FACTION;
@@ -570,7 +1085,7 @@ function factionToString(faction) {
 }
 exports.factionToString = factionToString;
 
-},{}],17:[function(require,module,exports){
+},{}],20:[function(require,module,exports){
 /*!
  * @pixi/accessibility - v5.1.6
  * Compiled Thu, 13 Feb 2020 04:58:13 UTC
@@ -1221,7 +1736,7 @@ exports.AccessibilityManager = AccessibilityManager;
 exports.accessibleTarget = accessibleTarget;
 
 
-},{"@pixi/display":21,"@pixi/utils":50}],18:[function(require,module,exports){
+},{"@pixi/display":24,"@pixi/utils":53}],21:[function(require,module,exports){
 /*!
  * @pixi/app - v5.1.6
  * Compiled Thu, 13 Feb 2020 04:58:13 UTC
@@ -1456,7 +1971,7 @@ Application.registerPlugin(ResizePlugin);
 exports.Application = Application;
 
 
-},{"@pixi/core":20,"@pixi/display":21}],19:[function(require,module,exports){
+},{"@pixi/core":23,"@pixi/display":24}],22:[function(require,module,exports){
 /*!
  * @pixi/constants - v5.1.6
  * Compiled Thu, 13 Feb 2020 04:58:13 UTC
@@ -1806,7 +2321,7 @@ exports.TYPES = TYPES;
 exports.WRAP_MODES = WRAP_MODES;
 
 
-},{}],20:[function(require,module,exports){
+},{}],23:[function(require,module,exports){
 /*!
  * @pixi/core - v5.1.6
  * Compiled Thu, 13 Feb 2020 04:58:13 UTC
@@ -14286,7 +14801,7 @@ exports.resources = index;
 exports.systems = systems;
 
 
-},{"@pixi/constants":19,"@pixi/display":21,"@pixi/math":32,"@pixi/runner":41,"@pixi/settings":42,"@pixi/ticker":49,"@pixi/utils":50}],21:[function(require,module,exports){
+},{"@pixi/constants":22,"@pixi/display":24,"@pixi/math":35,"@pixi/runner":44,"@pixi/settings":45,"@pixi/ticker":52,"@pixi/utils":53}],24:[function(require,module,exports){
 /*!
  * @pixi/display - v5.1.6
  * Compiled Thu, 13 Feb 2020 04:58:13 UTC
@@ -16094,7 +16609,7 @@ exports.Container = Container;
 exports.DisplayObject = DisplayObject;
 
 
-},{"@pixi/math":32,"@pixi/settings":42,"@pixi/utils":50}],22:[function(require,module,exports){
+},{"@pixi/math":35,"@pixi/settings":45,"@pixi/utils":53}],25:[function(require,module,exports){
 /*!
  * @pixi/extract - v5.1.6
  * Compiled Thu, 13 Feb 2020 04:58:13 UTC
@@ -16397,7 +16912,7 @@ Extract.arrayPostDivide = function arrayPostDivide (pixels, out)
 exports.Extract = Extract;
 
 
-},{"@pixi/core":20,"@pixi/math":32,"@pixi/utils":50}],23:[function(require,module,exports){
+},{"@pixi/core":23,"@pixi/math":35,"@pixi/utils":53}],26:[function(require,module,exports){
 /*!
  * @pixi/filter-alpha - v5.1.6
  * Compiled Thu, 13 Feb 2020 04:58:13 UTC
@@ -16470,7 +16985,7 @@ var AlphaFilter = /*@__PURE__*/(function (Filter) {
 exports.AlphaFilter = AlphaFilter;
 
 
-},{"@pixi/core":20}],24:[function(require,module,exports){
+},{"@pixi/core":23}],27:[function(require,module,exports){
 /*!
  * @pixi/filter-blur - v5.1.6
  * Compiled Thu, 13 Feb 2020 04:58:13 UTC
@@ -16906,7 +17421,7 @@ exports.BlurFilter = BlurFilter;
 exports.BlurFilterPass = BlurFilterPass;
 
 
-},{"@pixi/core":20,"@pixi/settings":42}],25:[function(require,module,exports){
+},{"@pixi/core":23,"@pixi/settings":45}],28:[function(require,module,exports){
 /*!
  * @pixi/filter-color-matrix - v5.1.6
  * Compiled Thu, 13 Feb 2020 04:58:13 UTC
@@ -17513,7 +18028,7 @@ ColorMatrixFilter.prototype.grayscale = ColorMatrixFilter.prototype.greyscale;
 exports.ColorMatrixFilter = ColorMatrixFilter;
 
 
-},{"@pixi/core":20}],26:[function(require,module,exports){
+},{"@pixi/core":23}],29:[function(require,module,exports){
 /*!
  * @pixi/filter-displacement - v5.1.6
  * Compiled Thu, 13 Feb 2020 04:58:13 UTC
@@ -17640,7 +18155,7 @@ var DisplacementFilter = /*@__PURE__*/(function (Filter) {
 exports.DisplacementFilter = DisplacementFilter;
 
 
-},{"@pixi/core":20,"@pixi/math":32}],27:[function(require,module,exports){
+},{"@pixi/core":23,"@pixi/math":35}],30:[function(require,module,exports){
 /*!
  * @pixi/filter-fxaa - v5.1.6
  * Compiled Thu, 13 Feb 2020 04:58:13 UTC
@@ -17686,7 +18201,7 @@ var FXAAFilter = /*@__PURE__*/(function (Filter) {
 exports.FXAAFilter = FXAAFilter;
 
 
-},{"@pixi/core":20}],28:[function(require,module,exports){
+},{"@pixi/core":23}],31:[function(require,module,exports){
 /*!
  * @pixi/filter-noise - v5.1.6
  * Compiled Thu, 13 Feb 2020 04:58:13 UTC
@@ -17774,7 +18289,7 @@ var NoiseFilter = /*@__PURE__*/(function (Filter) {
 exports.NoiseFilter = NoiseFilter;
 
 
-},{"@pixi/core":20}],29:[function(require,module,exports){
+},{"@pixi/core":23}],32:[function(require,module,exports){
 /*!
  * @pixi/graphics - v5.1.6
  * Compiled Thu, 13 Feb 2020 04:58:13 UTC
@@ -21302,7 +21817,7 @@ exports.GraphicsGeometry = GraphicsGeometry;
 exports.LineStyle = LineStyle;
 
 
-},{"@pixi/constants":19,"@pixi/core":20,"@pixi/display":21,"@pixi/math":32,"@pixi/utils":50}],30:[function(require,module,exports){
+},{"@pixi/constants":22,"@pixi/core":23,"@pixi/display":24,"@pixi/math":35,"@pixi/utils":53}],33:[function(require,module,exports){
 /*!
  * @pixi/interaction - v5.1.6
  * Compiled Thu, 13 Feb 2020 04:58:13 UTC
@@ -23780,7 +24295,7 @@ exports.InteractionTrackingData = InteractionTrackingData;
 exports.interactiveTarget = interactiveTarget;
 
 
-},{"@pixi/display":21,"@pixi/math":32,"@pixi/ticker":49,"@pixi/utils":50}],31:[function(require,module,exports){
+},{"@pixi/display":24,"@pixi/math":35,"@pixi/ticker":52,"@pixi/utils":53}],34:[function(require,module,exports){
 /*!
  * @pixi/loaders - v5.1.6
  * Compiled Thu, 13 Feb 2020 04:58:13 UTC
@@ -24095,7 +24610,7 @@ exports.LoaderResource = LoaderResource;
 exports.TextureLoader = TextureLoader;
 
 
-},{"@pixi/core":20,"@pixi/utils":50,"resource-loader":64}],32:[function(require,module,exports){
+},{"@pixi/core":23,"@pixi/utils":53,"resource-loader":67}],35:[function(require,module,exports){
 /*!
  * @pixi/math - v5.1.6
  * Compiled Thu, 13 Feb 2020 04:58:13 UTC
@@ -26217,7 +26732,7 @@ exports.SHAPES = SHAPES;
 exports.Transform = Transform;
 
 
-},{}],33:[function(require,module,exports){
+},{}],36:[function(require,module,exports){
 /*!
  * @pixi/mesh-extras - v5.1.6
  * Compiled Thu, 13 Feb 2020 04:58:13 UTC
@@ -26987,7 +27502,7 @@ exports.SimplePlane = SimplePlane;
 exports.SimpleRope = SimpleRope;
 
 
-},{"@pixi/core":20,"@pixi/mesh":34}],34:[function(require,module,exports){
+},{"@pixi/core":23,"@pixi/mesh":37}],37:[function(require,module,exports){
 /*!
  * @pixi/mesh - v5.1.6
  * Compiled Thu, 13 Feb 2020 04:58:13 UTC
@@ -27782,7 +28297,7 @@ exports.MeshGeometry = MeshGeometry;
 exports.MeshMaterial = MeshMaterial;
 
 
-},{"@pixi/constants":19,"@pixi/core":20,"@pixi/display":21,"@pixi/math":32,"@pixi/settings":42,"@pixi/utils":50}],35:[function(require,module,exports){
+},{"@pixi/constants":22,"@pixi/core":23,"@pixi/display":24,"@pixi/math":35,"@pixi/settings":45,"@pixi/utils":53}],38:[function(require,module,exports){
 /*!
  * @pixi/mixin-cache-as-bitmap - v5.1.6
  * Compiled Thu, 13 Feb 2020 04:58:13 UTC
@@ -28217,7 +28732,7 @@ display.DisplayObject.prototype._cacheAsBitmapDestroy = function _cacheAsBitmapD
 };
 
 
-},{"@pixi/core":20,"@pixi/display":21,"@pixi/math":32,"@pixi/settings":42,"@pixi/sprite":45,"@pixi/utils":50}],36:[function(require,module,exports){
+},{"@pixi/core":23,"@pixi/display":24,"@pixi/math":35,"@pixi/settings":45,"@pixi/sprite":48,"@pixi/utils":53}],39:[function(require,module,exports){
 /*!
  * @pixi/mixin-get-child-by-name - v5.1.6
  * Compiled Thu, 13 Feb 2020 04:58:13 UTC
@@ -28259,7 +28774,7 @@ display.Container.prototype.getChildByName = function getChildByName(name)
 };
 
 
-},{"@pixi/display":21}],37:[function(require,module,exports){
+},{"@pixi/display":24}],40:[function(require,module,exports){
 /*!
  * @pixi/mixin-get-global-position - v5.1.6
  * Compiled Thu, 13 Feb 2020 04:58:13 UTC
@@ -28302,7 +28817,7 @@ display.DisplayObject.prototype.getGlobalPosition = function getGlobalPosition(p
 };
 
 
-},{"@pixi/display":21,"@pixi/math":32}],38:[function(require,module,exports){
+},{"@pixi/display":24,"@pixi/math":35}],41:[function(require,module,exports){
 /*!
  * @pixi/particles - v5.1.6
  * Compiled Thu, 13 Feb 2020 04:58:13 UTC
@@ -29284,7 +29799,7 @@ exports.ParticleContainer = ParticleContainer;
 exports.ParticleRenderer = ParticleRenderer;
 
 
-},{"@pixi/constants":19,"@pixi/core":20,"@pixi/display":21,"@pixi/math":32,"@pixi/utils":50}],39:[function(require,module,exports){
+},{"@pixi/constants":22,"@pixi/core":23,"@pixi/display":24,"@pixi/math":35,"@pixi/utils":53}],42:[function(require,module,exports){
 (function (global){
 /*!
  * @pixi/polyfill - v5.1.6
@@ -29453,7 +29968,7 @@ if (!window.Int32Array)
 
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"es6-promise-polyfill":53,"object-assign":56}],40:[function(require,module,exports){
+},{"es6-promise-polyfill":56,"object-assign":59}],43:[function(require,module,exports){
 /*!
  * @pixi/prepare - v5.1.6
  * Compiled Thu, 13 Feb 2020 04:58:13 UTC
@@ -30183,7 +30698,7 @@ exports.Prepare = Prepare;
 exports.TimeLimiter = TimeLimiter;
 
 
-},{"@pixi/core":20,"@pixi/display":21,"@pixi/graphics":29,"@pixi/settings":42,"@pixi/text":48,"@pixi/ticker":49}],41:[function(require,module,exports){
+},{"@pixi/core":23,"@pixi/display":24,"@pixi/graphics":32,"@pixi/settings":45,"@pixi/text":51,"@pixi/ticker":52}],44:[function(require,module,exports){
 /*!
  * @pixi/runner - v5.1.6
  * Compiled Thu, 13 Feb 2020 04:58:13 UTC
@@ -30403,7 +30918,7 @@ Runner.prototype.run = Runner.prototype.emit;
 exports.Runner = Runner;
 
 
-},{}],42:[function(require,module,exports){
+},{}],45:[function(require,module,exports){
 /*!
  * @pixi/settings - v5.1.6
  * Compiled Thu, 13 Feb 2020 04:58:13 UTC
@@ -30727,7 +31242,7 @@ exports.isMobile = isMobile;
 exports.settings = settings;
 
 
-},{"ismobilejs":54}],43:[function(require,module,exports){
+},{"ismobilejs":57}],46:[function(require,module,exports){
 /*!
  * @pixi/sprite-animated - v5.1.6
  * Compiled Thu, 13 Feb 2020 04:58:13 UTC
@@ -31188,7 +31703,7 @@ var AnimatedSprite = /*@__PURE__*/(function (Sprite) {
 exports.AnimatedSprite = AnimatedSprite;
 
 
-},{"@pixi/core":20,"@pixi/sprite":45,"@pixi/ticker":49}],44:[function(require,module,exports){
+},{"@pixi/core":23,"@pixi/sprite":48,"@pixi/ticker":52}],47:[function(require,module,exports){
 /*!
  * @pixi/sprite-tiling - v5.1.6
  * Compiled Thu, 13 Feb 2020 04:58:13 UTC
@@ -31698,7 +32213,7 @@ exports.TilingSprite = TilingSprite;
 exports.TilingSpriteRenderer = TilingSpriteRenderer;
 
 
-},{"@pixi/constants":19,"@pixi/core":20,"@pixi/math":32,"@pixi/sprite":45,"@pixi/utils":50}],45:[function(require,module,exports){
+},{"@pixi/constants":22,"@pixi/core":23,"@pixi/math":35,"@pixi/sprite":48,"@pixi/utils":53}],48:[function(require,module,exports){
 /*!
  * @pixi/sprite - v5.1.6
  * Compiled Thu, 13 Feb 2020 04:58:13 UTC
@@ -32382,7 +32897,7 @@ var Sprite = /*@__PURE__*/(function (Container) {
 exports.Sprite = Sprite;
 
 
-},{"@pixi/constants":19,"@pixi/core":20,"@pixi/display":21,"@pixi/math":32,"@pixi/settings":42,"@pixi/utils":50}],46:[function(require,module,exports){
+},{"@pixi/constants":22,"@pixi/core":23,"@pixi/display":24,"@pixi/math":35,"@pixi/settings":45,"@pixi/utils":53}],49:[function(require,module,exports){
 /*!
  * @pixi/spritesheet - v5.1.6
  * Compiled Thu, 13 Feb 2020 04:58:13 UTC
@@ -32803,7 +33318,7 @@ exports.Spritesheet = Spritesheet;
 exports.SpritesheetLoader = SpritesheetLoader;
 
 
-},{"@pixi/core":20,"@pixi/loaders":31,"@pixi/math":32,"@pixi/utils":50}],47:[function(require,module,exports){
+},{"@pixi/core":23,"@pixi/loaders":34,"@pixi/math":35,"@pixi/utils":53}],50:[function(require,module,exports){
 /*!
  * @pixi/text-bitmap - v5.1.6
  * Compiled Thu, 13 Feb 2020 04:58:13 UTC
@@ -33644,7 +34159,7 @@ exports.BitmapFontLoader = BitmapFontLoader;
 exports.BitmapText = BitmapText;
 
 
-},{"@pixi/core":20,"@pixi/display":21,"@pixi/loaders":31,"@pixi/math":32,"@pixi/settings":42,"@pixi/sprite":45,"@pixi/utils":50}],48:[function(require,module,exports){
+},{"@pixi/core":23,"@pixi/display":24,"@pixi/loaders":34,"@pixi/math":35,"@pixi/settings":45,"@pixi/sprite":48,"@pixi/utils":53}],51:[function(require,module,exports){
 /*!
  * @pixi/text - v5.1.6
  * Compiled Thu, 13 Feb 2020 04:58:13 UTC
@@ -35931,7 +36446,7 @@ exports.TextMetrics = TextMetrics;
 exports.TextStyle = TextStyle;
 
 
-},{"@pixi/core":20,"@pixi/math":32,"@pixi/settings":42,"@pixi/sprite":45,"@pixi/utils":50}],49:[function(require,module,exports){
+},{"@pixi/core":23,"@pixi/math":35,"@pixi/settings":45,"@pixi/sprite":48,"@pixi/utils":53}],52:[function(require,module,exports){
 /*!
  * @pixi/ticker - v5.1.6
  * Compiled Thu, 13 Feb 2020 04:58:13 UTC
@@ -36894,7 +37409,7 @@ exports.TickerPlugin = TickerPlugin;
 exports.UPDATE_PRIORITY = UPDATE_PRIORITY;
 
 
-},{"@pixi/settings":42}],50:[function(require,module,exports){
+},{"@pixi/settings":45}],53:[function(require,module,exports){
 /*!
  * @pixi/utils - v5.1.6
  * Compiled Thu, 13 Feb 2020 04:58:13 UTC
@@ -37921,7 +38436,7 @@ exports.trimCanvas = trimCanvas;
 exports.uid = uid;
 
 
-},{"@pixi/constants":19,"@pixi/settings":42,"earcut":52,"eventemitter3":51,"url":66}],51:[function(require,module,exports){
+},{"@pixi/constants":22,"@pixi/settings":45,"earcut":55,"eventemitter3":54,"url":69}],54:[function(require,module,exports){
 'use strict';
 
 var has = Object.prototype.hasOwnProperty
@@ -38259,7 +38774,7 @@ if ('undefined' !== typeof module) {
   module.exports = EventEmitter;
 }
 
-},{}],52:[function(require,module,exports){
+},{}],55:[function(require,module,exports){
 'use strict';
 
 module.exports = earcut;
@@ -38940,7 +39455,7 @@ earcut.flatten = function (data) {
     return result;
 };
 
-},{}],53:[function(require,module,exports){
+},{}],56:[function(require,module,exports){
 (function (global,setImmediate){
 (function(global){
 
@@ -39290,9 +39805,9 @@ Promise.reject = function(reason){
 })(typeof window != 'undefined' ? window : typeof global != 'undefined' ? global : typeof self != 'undefined' ? self : this);
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {},require("timers").setImmediate)
-},{"timers":65}],54:[function(require,module,exports){
+},{"timers":68}],57:[function(require,module,exports){
 !function(e){var n=/iPhone/i,t=/iPod/i,r=/iPad/i,a=/\bAndroid(?:.+)Mobile\b/i,p=/Android/i,b=/\bAndroid(?:.+)SD4930UR\b/i,l=/\bAndroid(?:.+)(?:KF[A-Z]{2,4})\b/i,f=/Windows Phone/i,s=/\bWindows(?:.+)ARM\b/i,u=/BlackBerry/i,c=/BB10/i,h=/Opera Mini/i,v=/\b(CriOS|Chrome)(?:.+)Mobile/i,w=/Mobile(?:.+)Firefox\b/i;function m(e,i){return e.test(i)}function i(e){var i=e||("undefined"!=typeof navigator?navigator.userAgent:""),o=i.split("[FBAN");void 0!==o[1]&&(i=o[0]),void 0!==(o=i.split("Twitter"))[1]&&(i=o[0]);var d={apple:{phone:m(n,i)&&!m(f,i),ipod:m(t,i),tablet:!m(n,i)&&m(r,i)&&!m(f,i),device:(m(n,i)||m(t,i)||m(r,i))&&!m(f,i)},amazon:{phone:m(b,i),tablet:!m(b,i)&&m(l,i),device:m(b,i)||m(l,i)},android:{phone:!m(f,i)&&m(b,i)||!m(f,i)&&m(a,i),tablet:!m(f,i)&&!m(b,i)&&!m(a,i)&&(m(l,i)||m(p,i)),device:!m(f,i)&&(m(b,i)||m(l,i)||m(a,i)||m(p,i))||m(/\bokhttp\b/i,i)},windows:{phone:m(f,i),tablet:m(s,i),device:m(f,i)||m(s,i)},other:{blackberry:m(u,i),blackberry10:m(c,i),opera:m(h,i),firefox:m(w,i),chrome:m(v,i),device:m(u,i)||m(c,i)||m(h,i)||m(w,i)||m(v,i)}};return d.any=d.apple.device||d.android.device||d.windows.device||d.other.device,d.phone=d.apple.phone||d.android.phone||d.windows.phone,d.tablet=d.apple.tablet||d.android.tablet||d.windows.tablet,d}"undefined"!=typeof module&&module.exports&&"undefined"==typeof window?module.exports=i:"undefined"!=typeof module&&module.exports&&"undefined"!=typeof window?(module.exports=i(),module.exports.isMobile=i):"function"==typeof define&&define.amd?define([],e.isMobile=i()):e.isMobile=i()}(this);
-},{}],55:[function(require,module,exports){
+},{}],58:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, '__esModule', {
@@ -39459,7 +39974,7 @@ MiniSignal.MiniSignalBinding = MiniSignalBinding;
 exports['default'] = MiniSignal;
 module.exports = exports['default'];
 
-},{}],56:[function(require,module,exports){
+},{}],59:[function(require,module,exports){
 /*
 object-assign
 (c) Sindre Sorhus
@@ -39551,7 +40066,7 @@ module.exports = shouldUseNative() ? Object.assign : function (target, source) {
 	return to;
 };
 
-},{}],57:[function(require,module,exports){
+},{}],60:[function(require,module,exports){
 'use strict'
 
 module.exports = function parseURI (str, opts) {
@@ -39583,7 +40098,7 @@ module.exports = function parseURI (str, opts) {
   return uri
 }
 
-},{}],58:[function(require,module,exports){
+},{}],61:[function(require,module,exports){
 /*!
  * pixi.js - v5.1.6
  * Compiled Thu, 13 Feb 2020 04:58:13 UTC
@@ -41017,7 +41532,7 @@ exports.filters = filters;
 exports.useDeprecated = useDeprecated;
 
 
-},{"@pixi/accessibility":17,"@pixi/app":18,"@pixi/constants":19,"@pixi/core":20,"@pixi/display":21,"@pixi/extract":22,"@pixi/filter-alpha":23,"@pixi/filter-blur":24,"@pixi/filter-color-matrix":25,"@pixi/filter-displacement":26,"@pixi/filter-fxaa":27,"@pixi/filter-noise":28,"@pixi/graphics":29,"@pixi/interaction":30,"@pixi/loaders":31,"@pixi/math":32,"@pixi/mesh":34,"@pixi/mesh-extras":33,"@pixi/mixin-cache-as-bitmap":35,"@pixi/mixin-get-child-by-name":36,"@pixi/mixin-get-global-position":37,"@pixi/particles":38,"@pixi/polyfill":39,"@pixi/prepare":40,"@pixi/runner":41,"@pixi/settings":42,"@pixi/sprite":45,"@pixi/sprite-animated":43,"@pixi/sprite-tiling":44,"@pixi/spritesheet":46,"@pixi/text":48,"@pixi/text-bitmap":47,"@pixi/ticker":49,"@pixi/utils":50}],59:[function(require,module,exports){
+},{"@pixi/accessibility":20,"@pixi/app":21,"@pixi/constants":22,"@pixi/core":23,"@pixi/display":24,"@pixi/extract":25,"@pixi/filter-alpha":26,"@pixi/filter-blur":27,"@pixi/filter-color-matrix":28,"@pixi/filter-displacement":29,"@pixi/filter-fxaa":30,"@pixi/filter-noise":31,"@pixi/graphics":32,"@pixi/interaction":33,"@pixi/loaders":34,"@pixi/math":35,"@pixi/mesh":37,"@pixi/mesh-extras":36,"@pixi/mixin-cache-as-bitmap":38,"@pixi/mixin-get-child-by-name":39,"@pixi/mixin-get-global-position":40,"@pixi/particles":41,"@pixi/polyfill":42,"@pixi/prepare":43,"@pixi/runner":44,"@pixi/settings":45,"@pixi/sprite":48,"@pixi/sprite-animated":46,"@pixi/sprite-tiling":47,"@pixi/spritesheet":49,"@pixi/text":51,"@pixi/text-bitmap":50,"@pixi/ticker":52,"@pixi/utils":53}],62:[function(require,module,exports){
 // shim for using process in browser
 var process = module.exports = {};
 
@@ -41203,7 +41718,7 @@ process.chdir = function (dir) {
 };
 process.umask = function() { return 0; };
 
-},{}],60:[function(require,module,exports){
+},{}],63:[function(require,module,exports){
 (function (global){
 /*! https://mths.be/punycode v1.4.1 by @mathias */
 ;(function(root) {
@@ -41740,7 +42255,7 @@ process.umask = function() { return 0; };
 }(this));
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{}],61:[function(require,module,exports){
+},{}],64:[function(require,module,exports){
 // Copyright Joyent, Inc. and other Node contributors.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
@@ -41826,7 +42341,7 @@ var isArray = Array.isArray || function (xs) {
   return Object.prototype.toString.call(xs) === '[object Array]';
 };
 
-},{}],62:[function(require,module,exports){
+},{}],65:[function(require,module,exports){
 // Copyright Joyent, Inc. and other Node contributors.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
@@ -41913,13 +42428,13 @@ var objectKeys = Object.keys || function (obj) {
   return res;
 };
 
-},{}],63:[function(require,module,exports){
+},{}],66:[function(require,module,exports){
 'use strict';
 
 exports.decode = exports.parse = require('./decode');
 exports.encode = exports.stringify = require('./encode');
 
-},{"./decode":61,"./encode":62}],64:[function(require,module,exports){
+},{"./decode":64,"./encode":65}],67:[function(require,module,exports){
 /*!
  * resource-loader - v3.0.1
  * https://github.com/pixijs/pixi-sound
@@ -44270,7 +44785,7 @@ exports.encodeBinary = encodeBinary;
 exports.middleware = index;
 
 
-},{"mini-signals":55,"parse-uri":57}],65:[function(require,module,exports){
+},{"mini-signals":58,"parse-uri":60}],68:[function(require,module,exports){
 (function (setImmediate,clearImmediate){
 var nextTick = require('process/browser.js').nextTick;
 var apply = Function.prototype.apply;
@@ -44349,7 +44864,7 @@ exports.clearImmediate = typeof clearImmediate === "function" ? clearImmediate :
   delete immediateIds[id];
 };
 }).call(this,require("timers").setImmediate,require("timers").clearImmediate)
-},{"process/browser.js":59,"timers":65}],66:[function(require,module,exports){
+},{"process/browser.js":62,"timers":68}],69:[function(require,module,exports){
 // Copyright Joyent, Inc. and other Node contributors.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
@@ -45083,7 +45598,7 @@ Url.prototype.parseHost = function() {
   if (host) this.hostname = host;
 };
 
-},{"./util":67,"punycode":60,"querystring":63}],67:[function(require,module,exports){
+},{"./util":70,"punycode":63,"querystring":66}],70:[function(require,module,exports){
 'use strict';
 
 module.exports = {
@@ -45101,4 +45616,4 @@ module.exports = {
   }
 };
 
-},{}]},{},[11]);
+},{}]},{},[18]);
