@@ -11,9 +11,9 @@ export class Tile extends Entity {
 
   public getAssetInfo = () : AssetInfo => {
     return {
-      name : factionToString(GetTileColor(this.x, this.y)) + '_tile.png',
-      offset_x : 0,//-32,
-      offset_y : 0, //-18,
+      name : factionToString(GetTileColor(this)) + '_tile.png',
+      offset_x : 0,
+      offset_y : 0,
     }
   }
 }

@@ -29,7 +29,7 @@ export default class TileHighlighter {
     targets = this.m_board.getElementsAt(this.m_current_pos)
     if (targets.length > 0) {
       targets.forEach((entity:Entity) => {
-        this.m_renderer.getRenderable(entity.id).offsetY = -5;
+        this.m_renderer.getRenderable(entity.id).offsetY = -2;
       })
     }
     this.m_last_pos = this.m_current_pos;

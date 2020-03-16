@@ -1,8 +1,8 @@
 import * as PIXI from 'pixi.js';
 import { ChessBoard, IBoardConfig } from "../../board/ChessBoard";
 import { SceneRenderer } from "../../../engine/render/scene/SceneRenderer";
-import { FSMState } from "../../../engine/FSM";
 import { EventManager } from '../../../engine/listener/event';
+import { IState } from '../../../engine/FSM';
 
 export interface ISetupStateArgs {
   board : ChessBoard,
@@ -10,14 +10,12 @@ export interface ISetupStateArgs {
   board_data_path : string,
 }
 
-export class SetupState extends FSMState {
+export class SetupState implements IState {
   private loader : PIXI.Loader;
 
   private m_eventManager : EventManager<"COMPLETE"> = new EventManager();
 
   constructor(private opts : ISetupStateArgs) {
-    super();
-
     let loader = this.loader = new PIXI.Loader();
     loader.add(opts.board_data_path);
   }

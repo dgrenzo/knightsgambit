@@ -39,7 +39,9 @@
   },
   "dependencies": {
     "@types/howler": "^2.1.2",
-    "fs": "0.0.1-security"
+    "@types/lodash": "^4.14.149",
+    "fs": "0.0.1-security",
+    "lodash": "^4.17.15"
   },
   "settings": {
     "debug": false,

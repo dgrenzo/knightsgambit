@@ -1,5 +1,7 @@
+import * as _ from 'lodash';
+
 import * as PIXI from 'pixi.js';
-import { ChessBoard } from "./board/ChessBoard";
+import { ChessBoard, ITilePos } from "./board/ChessBoard";
 import { RenderMode, CreateRenderer } from '../engine/render/render';
 import { FSM } from '../engine/FSM';
 import { SceneRenderer } from '../engine/render/scene/SceneRenderer';
@@ -7,7 +9,6 @@ import { SetupState } from './states/setup/SetupState';
 import { PlayState } from './states/play/PlayState';
 import { EventManager } from '../engine/listener/event';
 import { ChessPiece } from './board/pieces/ChessPiece';
-import { Entity } from '../engine/scene/Entity';
 import TileHighlighter from './extras/TileHighlighter';
 import { Tile } from './board/Tile';
 
@@ -42,10 +43,8 @@ export class GameController {
   private m_eventManager = new EventManager<GameSignal>();
 
   constructor(private m_config : GameConfig) {
-
     this.m_fsm = new FSM();
     m_config.pixi_app.ticker.add(this.m_fsm.update);
-
 
     this.m_board = new ChessBoard();
     this.m_renderer = CreateRenderer(m_config);
@@ -82,7 +81,6 @@ export class GameController {
     );
 
     setupState.onComplete(() => {
-
       m_config.pixi_app.stage.addChild(this.m_renderer.stage);
 
       let highligher = new TileHighlighter(this.m_renderer, this.m_board);
@@ -91,27 +89,20 @@ export class GameController {
       m_config.pixi_app.ticker.add(() => {
         this.m_renderer.renderScene(this.m_board);
       });
-      this.m_fsm.enterState(GameState.PLAY);
+      this.m_fsm.setState(GameState.PLAY);
     })
 
-    this.m_fsm.enterState(GameState.SETUP);
+    this.m_fsm.setState(GameState.SETUP);
   }
 
-  public highlightTiles = (tiles: {x : number, y : number, id: number}[], highlight : boolean) => {
-    tiles.forEach(tile => {
-      this.m_renderer.getRenderable(tile.id).setFilter({highlight : highlight});
-    })
+  public getValidActions = (piece : ChessPiece) : {pos : ITilePos}[] => {
+    return this.m_board.getMoveOptions(piece);
   }
+
+  
 
   public getPieceAt = (pos : { x : number, y : number }) : ChessPiece => {
-    let elements = this.m_board.getElementsAt(pos);
-    let piece = null;
-    elements.forEach((entity:Entity) => {
-      if (!piece && entity instanceof ChessPiece) {
-        piece = entity;
-      }
-    });
-    return piece;
+    return this.m_board.getPieceAt(pos);
   }
 
   public removePiece = (piece : ChessPiece) => {
@@ -123,14 +114,21 @@ export class GameController {
   }
 
   public getTileAt = (pos : { x : number, y : number }) : Tile => {
-    let elements = this.m_board.getElementsAt(pos);
-    let tile = null;
-    elements.forEach((entity:Entity) => {
-      if (!tile && entity instanceof Tile) {
-        tile = entity;
-      }
+    return this.m_board.getTileAt(pos);
+  }
+  
+  public highlightTile = (pos: ITilePos, highlight : boolean) => {
+    let tile = this.getTileAt(pos);
+    if (!tile) {
+      return;
+    }
+    this.m_renderer.getRenderable(tile.id).setFilter({highlight : highlight});
+  }
+
+  public highlightTiles = (coords:ITilePos[], highlight : boolean) => {
+    _.forEach(coords, pos => {
+      this.highlightTile(pos, highlight);
     });
-    return tile;
   }
 
 

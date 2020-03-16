@@ -6,8 +6,10 @@ export interface IFilterOptions {
   highlight : boolean,
 }
 
+export type EntityID = number;
+
 export class REntity {
-  public readonly id : number;
+  public readonly id : EntityID;
   public offsetY : number = 0;
   protected m_sprite : PIXI.Sprite;
 

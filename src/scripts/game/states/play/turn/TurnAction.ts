@@ -1,8 +1,9 @@
+import * as _ from 'lodash';
+
 import { GameController } from "../../../GameController";
-import { FSM, FSMStateSimple } from "../../../../engine/FSM";
-import { ChessPiece, IMovementPattern } from "../../../board/pieces/ChessPiece";
-
-
+import { ITilePos } from '../../../board/ChessBoard';
+import { FSM } from "../../../../engine/FSM";
+import { ChessPiece } from "../../../board/pieces/ChessPiece";
 
 enum TurnState {
   WAITING = 0,
@@ -12,54 +13,100 @@ enum TurnState {
 }
 
 
+export interface IPathSegment {
+  x : number,
+  y : number,
+  id : number,
+}
+
+
+
 export class TurnAction {
 
   private m_fsm : FSM = new FSM();
-  private m_activePiece : ChessPiece;
 
-  private m_validMoves : {x: number, y : number, id : number}[];
+  private m_activePiece : ChessPiece;
+  private m_validMoves : {pos:ITilePos}[];
+  private m_activeMove : {pos:ITilePos};
 
   constructor(private m_gameController : GameController) {
 
     this.m_fsm.registerState(
-      TurnState.WAITING, 
-      new FSMStateSimple({
+      TurnState.WAITING, {
         enter : () => {
           this.m_gameController.on("TILE_CLICKED", this.activatePiece);
         },
         exit : () => {
           this.m_gameController.off("TILE_CLICKED", this.activatePiece);
         }
-      })
+      }
     );
 
     this.m_fsm.registerState(
-      TurnState.SELECTED,
-      new FSMStateSimple({
+      TurnState.SELECTED, {
         enter : () => {
+          _.forEach(this.m_validMoves, (move => {
+            this.m_gameController.highlightTile(move.pos, true);
+          }))
           
-          this.m_gameController.highlightTiles(this.m_validMoves, true);
           this.m_gameController.on("TILE_CLICKED", this.onTileClicked);
         },
         exit : () => {
-          this.m_gameController.highlightTiles(this.m_validMoves, false);
+          _.forEach(this.m_validMoves, (move => {
+            this.m_gameController.highlightTile(move.pos, false);
+          }))
+
           this.m_gameController.off("TILE_CLICKED", this.onTileClicked);
         }
-
-      })
+      }
     )
-    
+
+    let current_tween = 0;
+    let target_piece : ChessPiece;
+    let lastPos : ITilePos;
+
+    let tween_length = 5;
+
+    let tween = (start, end, k) => {
+      return start + (end-start) * k;
+    }
+
     this.m_fsm.registerState(
-      TurnState.COMPLETE, 
-      new FSMStateSimple({
+      TurnState. ACTING, {
         enter : () => {
+          current_tween = 0;
+          target_piece = this.m_gameController.getPieceAt(this.m_activeMove.pos);
+          lastPos = {
+            x : this.m_activePiece.x,
+            y : this.m_activePiece.y,
+          }
+        },
+        update : (deltaTime : number) => {
+          current_tween = Math.min(tween_length, current_tween + deltaTime);
+
+          let k = current_tween/tween_length
+          this.m_activePiece.x = tween(lastPos.x, this.m_activeMove.pos.x, k);
+          this.m_activePiece.y = tween(lastPos.y, this.m_activeMove.pos.y, k);
+
+          if (current_tween >= tween_length) {
+            current_tween = 0;
+            this.m_gameController.removePiece(target_piece);
+            this.m_fsm.setState(TurnState.WAITING)
+          }
         },
         exit : () => {
+          this.m_activeMove = null;
         }
-      })
+      }
+    );
+    
+    this.m_fsm.registerState(
+      TurnState.COMPLETE, {
+
+      }
     );
 
-    this.m_fsm.enterState(TurnState.WAITING);
+    this.m_fsm.setState(TurnState.WAITING);
   }
 
   private activatePiece = (data : {x : number, y : number}) => {
@@ -69,77 +116,25 @@ export class TurnAction {
     }
 
     this.m_activePiece = piece;
-
-    let moves = this.m_activePiece.getMoves();
-
-    this.m_validMoves = [];
-
-    moves.forEach((move : IMovementPattern) => {
-      let target = {
-        x : this.m_activePiece.x + move.x,
-        y : this.m_activePiece.y + move.y,
-      }
-      let repeat = move.repeating;
-      do {
-        let tile = this.m_gameController.getTileAt(target);
-        if (tile) {
-          let target_piece = this.m_gameController.getPieceAt(target);
-          if (target_piece) {
-            repeat = false;
-
-            if (target_piece.getFaction() != piece.getFaction()) {
-              this.m_validMoves.push({
-                x : target.x,
-                y : target.y,
-                id : tile.id,
-              })
-            }
-
-
-          } else {
-            this.m_validMoves.push({
-              x : target.x,
-              y : target.y,
-              id : tile.id,
-            });
-          }
-          target.x += move.x;
-          target.y += move.y;
-        } else {
-          repeat = false;
-        }
-      }  while (repeat)
-    })
-    
-
+    this.m_validMoves = this.m_gameController.getValidActions(this.m_activePiece);
 
     Promise.resolve().then(() => {
-      this.m_fsm.enterState(TurnState.SELECTED);
+      this.m_fsm.setState(TurnState.SELECTED);
     });
+  }
+
+  public update = (deltaTime : number) => {
+    this.m_fsm.update(deltaTime);
   }
 
   
   private onTileClicked = (data : {x : number, y : number}) => {
-
-    if (this.m_gameController.getPieceAt(data) === this.m_activePiece) {
-      this.m_fsm.enterState(TurnState.WAITING);
-      return;
-    }
-
-    this.m_validMoves.forEach( move => {
-      if (move.x === data.x && move.y === data.y) {
-
-        this.m_gameController.removePiece(this.m_gameController.getPieceAt(move));
-
-
-        this.m_activePiece.x = data.x;
-        this.m_activePiece.y = data.y;
-        
-        this.m_fsm.enterState(TurnState.WAITING);
+    _.forEach(this.m_validMoves, move => {
+      if (move.pos.x === data.x && move.pos.y === data.y) {
+        this.m_activeMove = move;
       }
-    })
-
-
+    });
+    this.m_fsm.setState(this.m_activeMove ? TurnState.ACTING : TurnState.WAITING)
   }
   
 
