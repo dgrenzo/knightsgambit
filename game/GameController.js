@@ -1,5 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+var _ = require("lodash");
 var ChessBoard_1 = require("./board/ChessBoard");
 var render_1 = require("../engine/render/render");
 var FSM_1 = require("../engine/FSM");
@@ -8,7 +9,6 @@ var PlayState_1 = require("./states/play/PlayState");
 var event_1 = require("../engine/listener/event");
 var ChessPiece_1 = require("./board/pieces/ChessPiece");
 var TileHighlighter_1 = require("./extras/TileHighlighter");
-var Tile_1 = require("./board/Tile");
 var GameState;
 (function (GameState) {
     GameState[GameState["SETUP"] = 0] = "SETUP";
@@ -19,20 +19,11 @@ var GameController = (function () {
         var _this = this;
         this.m_config = m_config;
         this.m_eventManager = new event_1.EventManager();
-        this.highlightTiles = function (tiles, highlight) {
-            tiles.forEach(function (tile) {
-                _this.m_renderer.getRenderable(tile.id).setFilter({ highlight: highlight });
-            });
+        this.getValidActions = function (piece) {
+            return _this.m_board.getMoveOptions(piece);
         };
         this.getPieceAt = function (pos) {
-            var elements = _this.m_board.getElementsAt(pos);
-            var piece = null;
-            elements.forEach(function (entity) {
-                if (!piece && entity instanceof ChessPiece_1.ChessPiece) {
-                    piece = entity;
-                }
-            });
-            return piece;
+            return _this.m_board.getPieceAt(pos);
         };
         this.removePiece = function (piece) {
             if (!piece) {
@@ -42,14 +33,19 @@ var GameController = (function () {
             _this.m_renderer.removeEntity(piece);
         };
         this.getTileAt = function (pos) {
-            var elements = _this.m_board.getElementsAt(pos);
-            var tile = null;
-            elements.forEach(function (entity) {
-                if (!tile && entity instanceof Tile_1.Tile) {
-                    tile = entity;
-                }
+            return _this.m_board.getTileAt(pos);
+        };
+        this.highlightTile = function (pos, highlight) {
+            var tile = _this.getTileAt(pos);
+            if (!tile) {
+                return;
+            }
+            _this.m_renderer.getRenderable(tile.id).setFilter({ highlight: highlight });
+        };
+        this.highlightTiles = function (coords, highlight) {
+            _.forEach(coords, function (pos) {
+                _this.highlightTile(pos, highlight);
             });
-            return tile;
         };
         this.on = function (event_name, cb) {
             _this.m_eventManager.add(event_name, cb);
@@ -86,9 +82,9 @@ var GameController = (function () {
             m_config.pixi_app.ticker.add(function () {
                 _this.m_renderer.renderScene(_this.m_board);
             });
-            _this.m_fsm.enterState(GameState.PLAY);
+            _this.m_fsm.setState(GameState.PLAY);
         });
-        this.m_fsm.enterState(GameState.SETUP);
+        this.m_fsm.setState(GameState.SETUP);
     }
     return GameController;
 }());

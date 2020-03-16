@@ -21,7 +21,7 @@ var TileHighlighter = (function () {
             targets = _this.m_board.getElementsAt(_this.m_current_pos);
             if (targets.length > 0) {
                 targets.forEach(function (entity) {
-                    _this.m_renderer.getRenderable(entity.id).offsetY = -5;
+                    _this.m_renderer.getRenderable(entity.id).offsetY = -2;
                 });
             }
             _this.m_last_pos = _this.m_current_pos;

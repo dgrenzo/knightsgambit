@@ -28,7 +28,6 @@ var SceneRendererIsometric = (function (_super) {
             var point = _this.m_container.toLocal(global);
             var game_x = Math.round(point.y / _this.TILE_HEIGHT + point.x / _this.TILE_WIDTH) - 1;
             var game_y = Math.round(point.y / _this.TILE_HEIGHT - point.x / _this.TILE_WIDTH);
-            console.log(game_x + ' ' + game_y);
             return {
                 x: game_x,
                 y: game_y

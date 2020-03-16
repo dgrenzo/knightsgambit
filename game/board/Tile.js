@@ -23,7 +23,7 @@ var Tile = (function (_super) {
         _this.depth_offset = -1;
         _this.getAssetInfo = function () {
             return {
-                name: assets_1.factionToString(ChessBoard_1.GetTileColor(_this.x, _this.y)) + '_tile.png',
+                name: assets_1.factionToString(ChessBoard_1.GetTileColor(_this)) + '_tile.png',
                 offset_x: 0,
                 offset_y: 0,
             };

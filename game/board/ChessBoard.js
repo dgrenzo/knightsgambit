@@ -13,13 +13,69 @@ var __extends = (this && this.__extends) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
+var _ = require("lodash");
 var Tile_1 = require("./Tile");
 var ChessPiece_1 = require("./pieces/ChessPiece");
 var Scene_1 = require("../../engine/scene/Scene");
+var data_1 = require("./pieces/movement/data");
 var ChessBoard = (function (_super) {
     __extends(ChessBoard, _super);
     function ChessBoard() {
-        return _super.call(this) || this;
+        var _this = _super.call(this) || this;
+        _this.getTileAt = function (pos) {
+            var tile = null;
+            _.forEach(_this.getElementsAt(pos), function (entity) {
+                if (entity instanceof Tile_1.Tile) {
+                    tile = entity;
+                    return false;
+                }
+                return true;
+            });
+            return tile;
+        };
+        _this.getPieceAt = function (pos) {
+            var piece = null;
+            _.forEach(_this.getElementsAt(pos), function (entity) {
+                if (!piece && entity instanceof ChessPiece_1.ChessPiece) {
+                    piece = entity;
+                    return false;
+                }
+                return true;
+            });
+            return piece;
+        };
+        _this.tileExists = function (pos) {
+            return _this.getTileAt(pos) !== null;
+        };
+        _this.tileEmpty = function (pos) {
+            return _this.getPieceAt(pos) === null;
+        };
+        _this.getMoveOptions = function (piece) {
+            var move_patterns = piece.getMoves();
+            var options = [];
+            _.forEach(move_patterns, function (pattern) {
+                var next = {
+                    x: piece.x,
+                    y: piece.y,
+                };
+                var repeat = pattern.repeating;
+                do {
+                    next.x += pattern.offset.x;
+                    next.y += pattern.offset.y;
+                    repeat = repeat && _this.tileExists(next) && _this.tileEmpty(next);
+                    if (_this.canMoveToPosition(piece, next, pattern.tile_flags)) {
+                        options.push({
+                            pos: {
+                                x: next.x,
+                                y: next.y,
+                            },
+                        });
+                    }
+                } while (repeat);
+            });
+            return options;
+        };
+        return _this;
     }
     ChessBoard.prototype.init = function (board_config) {
         var _this = this;
@@ -43,10 +99,32 @@ var ChessBoard = (function (_super) {
         });
         return elements;
     };
+    ChessBoard.prototype.canMoveToPosition = function (actor, target, tile_flags) {
+        var tile = this.getTileAt(target);
+        if (!tile) {
+            return false;
+        }
+        var occupant = this.getPieceAt(target);
+        if (!occupant) {
+            if ((tile_flags & data_1.OccupantFlag.Empty) === data_1.OccupantFlag.Empty) {
+                return true;
+            }
+            else {
+                return false;
+            }
+        }
+        if (actor.getFaction() === occupant.getFaction() && (tile_flags & data_1.OccupantFlag.Ally) === data_1.OccupantFlag.Ally) {
+            return true;
+        }
+        if (actor.getFaction() !== occupant.getFaction() && (tile_flags & data_1.OccupantFlag.Enemy) === data_1.OccupantFlag.Enemy) {
+            return true;
+        }
+        return false;
+    };
     return ChessBoard;
 }(Scene_1.Scene));
 exports.ChessBoard = ChessBoard;
-function GetTileColor(x, y) {
-    return (x + y) % 2;
+function GetTileColor(pos) {
+    return (pos.x + pos.y) % 2;
 }
 exports.GetTileColor = GetTileColor;
